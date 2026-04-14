@@ -449,40 +449,55 @@ export default function ObsidianForge({ sessionName: parentSession, onSyncStatus
     boot();
   },[]);
 
-  // Hash loading for Obsidian bridge
-  const loadFromHash=useCallback(()=>{
+  // Load note data into editor state
+  const applyBridgeData=useCallback((data)=>{
+    if(!data||!data.name) return;
+    if(data.vault) setSourceVault(data.vault);
+    if(data.folder) setSourceFolder(data.folder);
+    if(data.folders?.length) setVaultFolders(data.folders);
+    const existingIdx=docs.findIndex(d=>d.name===data.name);
+    if(existingIdx>=0){
+      const u=[...docs];u[existingIdx]={...u[existingIdx],content:data.content};
+      setDocs(u);setActiveDoc(existingIdx);
+    } else {
+      const u=[...docs,{name:data.name,content:data.content}];
+      setDocs(u);setActiveDoc(u.length-1);
+    }
+    flash(`Loaded "${data.name}" from Obsidian`);
+  },[docs]);
+
+  // Hash loading for Obsidian bridge (new API format + legacy inline)
+  const loadFromHash=useCallback(async()=>{
     const hash=window.location.hash.slice(1);
     if(!hash) return false;
     try{
       const params=new URLSearchParams(hash);
       const target=params.get('target');
       if(target && target!=='forge') return false;
+
+      // New format: bridge=<id> — fetch from API
+      const bridgeId=params.get('bridge');
+      if(bridgeId){
+        window.history.replaceState(null,'',window.location.pathname);
+        const res=await fetch('/api/bridge?id='+encodeURIComponent(bridgeId));
+        if(!res.ok) { console.warn('Bridge fetch failed:', res.status); return false; }
+        const data=await res.json();
+        applyBridgeData(data);
+        return true;
+      }
+
+      // Legacy format: content encoded in hash
       const name=params.get('name');
       const content=params.get('content');
-      const vault=params.get('vault');
-      const folder=params.get('folder');
-      const foldersRaw=params.get('folders');
       if(!content||!name) return false;
       const fixedContent=content.replace(/ /g,'+');
       const decoded=decodeURIComponent(escape(atob(fixedContent)));
-      const folders=foldersRaw?foldersRaw.split('|').filter(Boolean):[];
-      if(vault) setSourceVault(vault);
-      if(folder) setSourceFolder(folder);
-      if(folders.length) setVaultFolders(folders);
-      // Find existing doc with same name or add new
-      const existingIdx=docs.findIndex(d=>d.name===name);
-      if(existingIdx>=0){
-        const u=[...docs];u[existingIdx]={...u[existingIdx],content:decoded};
-        setDocs(u);setActiveDoc(existingIdx);
-      } else {
-        const u=[...docs,{name,content:decoded}];
-        setDocs(u);setActiveDoc(u.length-1);
-      }
+      const folders=(params.get('folders')||'').split('|').filter(Boolean);
       window.history.replaceState(null,'',window.location.pathname);
-      flash(`Loaded "${name}" from Obsidian`);
+      applyBridgeData({name,content:decoded,vault:params.get('vault'),folder:params.get('folder'),folders});
       return true;
     }catch(err){console.warn('Hash load failed:',err);return false;}
-  },[docs]);
+  },[applyBridgeData]);
 
   // Listen for hash changes (Obsidian bridge)
   useEffect(()=>{

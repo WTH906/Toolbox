@@ -45,7 +45,7 @@ export default function App() {
       const params = new URLSearchParams(hash);
       const target = params.get('target');
       if (target === 'forge') setActiveApp('forge');
-      else if (target === 'annotator' || params.get('content')) setActiveApp('annotator');
+      else if (target === 'annotator') setActiveApp('annotator');
     } catch { /* ignore */ }
   }, []);
 

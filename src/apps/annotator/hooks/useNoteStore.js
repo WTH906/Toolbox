@@ -163,39 +163,56 @@ export default function useNoteStore() {
   const updateAnnotation = useCallback((annId, updates) => dispatch({ type: 'UPDATE_ANNOTATION', payload: { annId, updates } }), []);
   const removeAnnotation = useCallback((annId) => dispatch({ type: 'REMOVE_ANNOTATION', payload: annId }), []);
 
-  // ── Hash loading ──
+  // ── Hash loading (new bridge API format + legacy inline) ──
 
-  const loadFromHash = useCallback(() => {
+  const loadFromHash = useCallback(async () => {
     const hash = window.location.hash.slice(1);
-    console.log('[Annotator v2] loadFromHash called, hash length:', hash.length);
-    if (!hash) { console.log('[Annotator v2] No hash found'); return false; }
+    if (!hash) return false;
 
     try {
       const params = new URLSearchParams(hash);
+
+      // New format: bridge=<id> — fetch from API
+      const bridgeId = params.get('bridge');
+      if (bridgeId) {
+        const target = params.get('target');
+        if (target && target !== 'annotator') return false;
+        window.history.replaceState(null, '', window.location.pathname);
+        const res = await fetch('/api/bridge?id=' + encodeURIComponent(bridgeId));
+        if (!res.ok) return false;
+        const data = await res.json();
+        if (!data.name || !data.content) return false;
+        const folders = data.folders || [];
+        dispatch({
+          type: 'ADD_NOTE',
+          payload: {
+            markdown: data.content,
+            fileName: data.name,
+            sourceVault: data.vault || null,
+            sourceFolder: data.folder || null,
+            vaultFolders: Array.isArray(folders) ? folders : [],
+            fromObsidian: true,
+          },
+        });
+        return true;
+      }
+
+      // Legacy format: content encoded in hash
       const name = params.get('name');
       const content = params.get('content');
-      const vault = params.get('vault');
-      const folder = params.get('folder');
-      const foldersRaw = params.get('folders');
+      if (!content || !name) return false;
 
-      console.log('[Annotator v2] Hash parsed:', { name, vault, folder, foldersCount: foldersRaw?.split('|').length, contentLength: content?.length });
-
-      if (!content || !name) { console.log('[Annotator v2] Missing name or content'); return false; }
-
-      // Fix: URLSearchParams decodes + as space; restore for base64
       const fixedContent = content.replace(/ /g, '+');
       const decoded = decodeURIComponent(escape(atob(fixedContent)));
-      const folders = foldersRaw ? foldersRaw.split('|').filter(Boolean) : [];
-
-      console.log('[Annotator v2] Decoded note:', name, 'folders:', folders.length, 'markdown length:', decoded.length);
+      const folders = (params.get('folders') || '').split('|').filter(Boolean);
 
       dispatch({
         type: 'ADD_NOTE',
         payload: {
           markdown: decoded,
           fileName: name,
-          sourceVault: vault || null,
-          sourceFolder: folder || null,
+          sourceVault: params.get('vault') || null,
+          sourceFolder: params.get('folder') || null,
           vaultFolders: folders,
           fromObsidian: true,
         },

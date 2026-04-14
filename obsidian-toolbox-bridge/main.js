@@ -1,12 +1,8 @@
 /*
  * Toolbox Bridge — Obsidian plugin
  *
- * Ribbon icon shows a menu to choose Forge (edit) or Annotator (read/highlight).
- * Also adds two separate commands in the command palette.
- *
- * Drop this file + manifest.json into:
- *   <vault>/.obsidian/plugins/toolbox-bridge/
- * Then enable "Toolbox Bridge" in Settings → Community plugins.
+ * Sends the current note to Forge or Annotator via a short API handoff.
+ * No more giant URLs — the content goes through Redis.
  */
 
 "use strict";
@@ -14,7 +10,7 @@
 const obsidian = require("obsidian");
 
 const DEFAULT_SETTINGS = {
-  appUrl: "http://localhost:5173",
+  appUrl: "https://localhost:5173",
   vaultName: "",
 };
 
@@ -27,42 +23,29 @@ class ToolboxBridgePlugin extends obsidian.Plugin {
       await this.saveSettings();
     }
 
-    // ── Ribbon icon: shows a picker menu ──
     this.addRibbonIcon("pencil", "Send to Toolbox", (evt) => {
       const menu = new obsidian.Menu();
-
       menu.addItem((item) =>
-        item
-          .setTitle("Edit in Obsidian Forge")
-          .setIcon("file-edit")
-          .onClick(async () => {
-            await this.sendToApp("forge");
-          })
+        item.setTitle("Edit in Obsidian Forge").setIcon("file-edit")
+          .onClick(() => this.sendToApp("forge"))
       );
-
       menu.addItem((item) =>
-        item
-          .setTitle("Read in Annotator")
-          .setIcon("highlighter")
-          .onClick(async () => {
-            await this.sendToApp("annotator");
-          })
+        item.setTitle("Read in Annotator").setIcon("highlighter")
+          .onClick(() => this.sendToApp("annotator"))
       );
-
       menu.showAtMouseEvent(evt);
     });
 
-    // ── Command palette ──
     this.addCommand({
       id: "open-in-forge",
       name: "Edit current note in Obsidian Forge",
-      callback: async () => await this.sendToApp("forge"),
+      callback: () => this.sendToApp("forge"),
     });
 
     this.addCommand({
       id: "open-in-annotator",
       name: "Open current note in Annotator",
-      callback: async () => await this.sendToApp("annotator"),
+      callback: () => this.sendToApp("annotator"),
     });
 
     this.addSettingTab(new ToolboxBridgeSettingTab(this.app, this));
@@ -71,13 +54,12 @@ class ToolboxBridgePlugin extends obsidian.Plugin {
   async sendToApp(target) {
     const file = this.app.workspace.getActiveFile();
     if (!file) { new obsidian.Notice("No note is open."); return; }
-    if (!file.path.endsWith(".md")) { new obsidian.Notice("This file isn't a Markdown note."); return; }
+    if (!file.path.endsWith(".md")) { new obsidian.Notice("Not a Markdown file."); return; }
 
     const content = await this.app.vault.read(file);
     const name = file.name;
     const folder = file.parent ? file.parent.path : "";
 
-    // Collect every folder in the vault
     const folders = [];
     const seen = new Set();
     this.app.vault.getAllLoadedFiles().forEach((f) => {
@@ -88,28 +70,40 @@ class ToolboxBridgePlugin extends obsidian.Plugin {
         }
       }
     });
-    folders.sort((a, b) => a.localeCompare(b));
+    folders.sort();
 
-    const encoded = btoa(unescape(encodeURIComponent(content)));
+    const baseUrl = this.settings.appUrl.replace(/\/+$/, "");
 
-    const params = new URLSearchParams();
-    params.set("target", target);
-    params.set("name", name);
-    params.set("folder", folder);
-    params.set("vault", this.settings.vaultName);
-    params.set("folders", folders.join("|"));
-    params.set("content", encoded);
+    // POST the note to the bridge API — get a short ID back
+    new obsidian.Notice("Sending to Toolbox…");
 
-    const url = `${this.settings.appUrl.replace(/\/+$/, "")}/#${params.toString()}`;
+    try {
+      const res = await obsidian.requestUrl({
+        url: baseUrl + "/api/bridge",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, name, content, vault: this.settings.vaultName, folder, folders }),
+      });
 
-    if (url.length > 2_000_000) {
-      new obsidian.Notice("This note is too large to send via URL. Try a shorter note.");
-      return;
+      if (res.status !== 200) {
+        new obsidian.Notice("Failed to send: " + (res.json?.error || res.status));
+        return;
+      }
+
+      const id = res.json.id;
+
+      // Open a short URL — the app fetches the content from the bridge
+      const shortUrl = baseUrl + "/#bridge=" + id + "&target=" + target;
+
+      // Use Electron shell — URL is now short so it always works
+      require("electron").shell.openExternal(shortUrl);
+
+      const label = target === "forge" ? "Forge" : "Annotator";
+      new obsidian.Notice('Opened "' + name + '" in ' + label);
+    } catch (err) {
+      console.error("Toolbox Bridge error:", err);
+      new obsidian.Notice("Connection failed — is the app URL correct?\n" + err.message);
     }
-
-    window.open(url, "toolbox");
-    const label = target === "forge" ? "Forge" : "Annotator";
-    new obsidian.Notice(`Opened "${name}" in ${label}`);
   }
 
   async loadSettings() {
@@ -139,10 +133,10 @@ class ToolboxBridgeSettingTab extends obsidian.PluginSettingTab {
 
     new obsidian.Setting(containerEl)
       .setName("App URL")
-      .setDesc("Where is Toolbox running? Use localhost for dev, your Vercel URL for production.")
+      .setDesc("Your Vercel URL (e.g. https://my-toolbox.vercel.app) or http://localhost:5173 for dev.")
       .addText((text) =>
         text
-          .setPlaceholder("http://localhost:5173")
+          .setPlaceholder("https://my-toolbox.vercel.app")
           .setValue(this.plugin.settings.appUrl)
           .onChange(async (value) => {
             this.plugin.settings.appUrl = value.trim() || DEFAULT_SETTINGS.appUrl;
@@ -152,7 +146,7 @@ class ToolboxBridgeSettingTab extends obsidian.PluginSettingTab {
 
     new obsidian.Setting(containerEl)
       .setName("Vault name")
-      .setDesc("Used when sending notes back from the app. Auto-detected from your vault.")
+      .setDesc("Auto-detected. Used when sending notes back from the app.")
       .addText((text) =>
         text
           .setPlaceholder(this.plugin.app.vault.getName())
