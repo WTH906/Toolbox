@@ -124,6 +124,54 @@ function buildInlineRuns(text, inlineItems = {}) {
   return runs;
 }
 
+// ── Recursive list renderer (handles nesting + task lists) ──
+function renderList(listTok, paras, inlineItems, depth) {
+  for (let i = 0; i < listTok.items.length; i++) {
+    const item = listTok.items[i];
+
+    // Detect task list: marked sets `task: true/false`, not undefined.
+    // A task list item has `task: true`. Regular items have `task: false`.
+    let prefix;
+    if (item.task === true) {
+      prefix = item.checked ? '☑ ' : '☐ ';
+    } else if (listTok.ordered) {
+      prefix = `${(listTok.start || 1) + i}. `;
+    } else {
+      // Vary bullet by depth: •, ◦, ▪
+      prefix = depth === 0 ? '• ' : depth === 1 ? '◦ ' : '▪ ';
+    }
+
+    // Pull only the inline text tokens for THIS item (not nested lists)
+    let itemText = '';
+    const nestedLists = [];
+    if (item.tokens) {
+      for (const t of item.tokens) {
+        if (t.type === 'list') {
+          nestedLists.push(t);
+        } else if (t.type === 'text' || t.type === 'paragraph') {
+          itemText += (t.text || t.raw || '');
+        } else {
+          itemText += (t.text || t.raw || '');
+        }
+      }
+    } else {
+      itemText = item.text || '';
+    }
+    itemText = itemText.trim();
+
+    // Each level of nesting = ~360 twips (about 0.25")
+    paras.push(new Paragraph({
+      children: [new TextRun({ text: prefix }), ...buildInlineRuns(itemText, inlineItems)],
+      indent: { left: 360 + depth * 360 },
+    }));
+
+    // Recurse into nested lists
+    for (const nested of nestedLists) {
+      renderList(nested, paras, inlineItems, depth + 1);
+    }
+  }
+}
+
 // ── Convert markdown tokens to Word paragraphs ──
 function tokensToParas(tokens, inlineItems) {
   const paras = [];
@@ -170,19 +218,9 @@ function tokensToParas(tokens, inlineItems) {
         break;
       }
 
-      case 'list': {
-        for (let i = 0; i < tok.items.length; i++) {
-          const item = tok.items[i];
-          const text = item.text || item.tokens?.map(t => t.text || t.raw || '').join('') || '';
-          const bullet = tok.ordered ? `${i + 1}. ` : '• ';
-          const prefix = item.task !== undefined ? (item.checked ? '☑ ' : '☐ ') : bullet;
-          paras.push(new Paragraph({
-            children: [new TextRun({ text: prefix }), ...buildInlineRuns(text, inlineItems)],
-            indent: { left: 360 },
-          }));
-        }
+      case 'list':
+        renderList(tok, paras, inlineItems, 0);
         break;
-      }
 
       case 'table': {
         if (tok.header && tok.rows) {
