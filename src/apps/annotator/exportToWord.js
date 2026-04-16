@@ -1,10 +1,10 @@
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   Table, TableRow, TableCell, WidthType,
-  AlignmentType, PageBreak, CommentRangeStart, CommentRangeEnd,
-  CommentReference, FootnoteReferenceRun,
+  AlignmentType, PageBreak,
+  FootnoteReferenceRun,
   BookmarkStart, BookmarkEnd, TableOfContents,
-  ShadingType, BorderStyle, Comment,
+  ShadingType, BorderStyle,
 } from 'docx';
 import { marked } from 'marked';
 
@@ -184,18 +184,20 @@ export async function exportToWord({ markdown, fileName, annotations = [], footn
   // Assign Word footnote indices
   footnotes.forEach((fn, i) => { fn._wordIdx = i + 1; });
 
-  // Build comments from annotations that have comments or non-default types
-  const comments = [];
+  // Build comments from annotations — pass plain option objects, docx will wrap them
+  const commentData = [];
   annotations.forEach((ann, i) => {
     const typePrefix = TYPE_PREFIX[ann.type] || '';
     const commentText = [typePrefix, ann.comment].filter(Boolean).join('');
     if (commentText) {
-      comments.push(new Comment({
+      const parsedDate = ann.createdAt ? new Date(ann.createdAt) : new Date();
+      const safeDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      commentData.push({
         id: i,
         author: ann.type || 'note',
-        date: new Date(ann.createdAt),
+        date: safeDate,
         children: [new Paragraph({ children: [new TextRun(commentText)] })],
-      }));
+      });
     }
   });
 
@@ -278,7 +280,7 @@ export async function exportToWord({ markdown, fileName, annotations = [], footn
     creator: 'Toolbox Annotator',
     title: fileName?.replace(/\.md$/, '') || 'Document',
     description: summary || '',
-    comments: comments.length ? { children: comments } : undefined,
+    comments: commentData.length ? { children: commentData } : undefined,
     footnotes: Object.keys(wordFootnotes).length ? wordFootnotes : undefined,
     sections: [{
       properties: {},
