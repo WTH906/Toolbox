@@ -66,7 +66,10 @@ export default function Toolbar({
   onImport,
   onExportMd,
   onExportAnnotations,
+  onExportWord,
   onSendToVault,
+  onSummary,
+  hasSummary,
   fromObsidian,
   darkMode,
   onToggleTheme,
@@ -127,6 +130,9 @@ export default function Toolbar({
                 <button style={styles.dropItem} onClick={() => { onExportMd(); setExportOpen(false); }}>
                   Export Markdown (.md)
                 </button>
+                <button style={styles.dropItem} onClick={() => { onExportWord(); setExportOpen(false); }}>
+                  Export to Word (.docx)
+                </button>
                 <button
                   style={{
                     ...styles.dropItem,
@@ -149,6 +155,18 @@ export default function Toolbar({
         >
           {ICONS.vault}
           <span style={styles.btnLabel}>Send to Obsidian</span>
+        </button>
+
+        <button
+          onClick={onSummary}
+          style={{
+            ...styles.btn,
+            ...(hasSummary ? { color: 'var(--accent)', background: 'var(--accent-subtle)' } : {}),
+          }}
+          title="Document summary"
+        >
+          📋
+          <span style={styles.btnLabel}>Summary</span>
         </button>
 
         <div style={styles.divider} />
