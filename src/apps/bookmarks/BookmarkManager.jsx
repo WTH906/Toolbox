@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  DATA HELPERS
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 let _c = 0;
 const genId = (prefix) => `${prefix}_${Date.now().toString(36)}_${++_c}`;
@@ -13,9 +13,9 @@ const DEFAULT_TAGS = [
   { id: 'tag_reading', name: 'Reading', color: '#00c853' },
 ];
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  ICONS
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 const ICO = {
   plus: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
@@ -66,9 +66,9 @@ function LetterAvatar({ name, url }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  CHROME BOOKMARK HTML PARSER
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 // Chrome exports bookmarks as nested <DL>/<DT>/<H3>/<A> HTML.
 // Folders become tags using their full path (e.g. "Dev/Frontend").
@@ -144,9 +144,9 @@ function hslToHex(hslStr) {
   return '#' + m.slice(0, 3).map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  TAG MANAGER DIALOG
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 function TagManagerDialog({ tags, onAdd, onUpdate, onDelete, onClose }) {
   const [name, setName] = useState('');
@@ -236,9 +236,9 @@ function TagManagerDialog({ tags, onAdd, onUpdate, onDelete, onClose }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  ADD / EDIT BOOKMARK DIALOG
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) {
   const isEdit = bookmark?.id != null; // paste-and-go has no id
@@ -342,9 +342,9 @@ function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) 
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  BOOKMARK CARD
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
   const favicon = getFavicon(bookmark.url);
@@ -389,9 +389,9 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  TAG FOLDER
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -420,9 +420,9 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 export default function BookmarkManager({ initialData, onDataChange }) {
   const [tags, setTags] = useState(initialData?.tags || DEFAULT_TAGS);
@@ -736,13 +736,14 @@ export default function BookmarkManager({ initialData, onDataChange }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 //  STYLES — uses CSS vars from the toolbox global.css
-// ═══════════════════════════════════════════════════════════════════
+// ===================================================================
 
 const S = {
   root: {
-    display: 'flex', flexDirection: 'column', height: '100%', width: '100%',
+    display: 'flex', flexDirection: 'column',
+    position: 'absolute', inset: 0,
     background: 'var(--bg-primary)', color: 'var(--text-primary)',
     fontFamily: 'var(--font-body)', overflow: 'hidden',
   },
@@ -806,9 +807,8 @@ const S = {
 
   // ── Content ──
   content: {
-    flex: 1, overflowY: 'auto', padding: '16px 20px 40px',
+    overflowY: 'auto', padding: '16px 20px 40px',
     display: 'flex', flexDirection: 'column', gap: 8,
-    minHeight: 0,
   },
 
   // ── Folder ──

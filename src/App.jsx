@@ -88,25 +88,25 @@ export default function App() {
 
       {/* ── App Content ── */}
       <div style={styles.content}>
-        <div style={{ display: activeApp === 'forge' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+        <div style={{ ...styles.tabPane, display: activeApp === 'forge' ? 'flex' : 'none' }}>
           <ObsidianForge
             sessionName={sessionName}
             onSyncStatusChange={setForgeSyncStatus}
           />
         </div>
-        <div style={{ display: activeApp === 'annotator' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+        <div style={{ ...styles.tabPane, display: activeApp === 'annotator' ? 'flex' : 'none' }}>
           <AnnotatorApp
             sessionName={sessionName}
             onSyncStatusChange={setAnnotatorSyncStatus}
           />
         </div>
-        <div style={{ display: activeApp === 'bookmarks' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+        <div style={{ ...styles.tabPane, display: activeApp === 'bookmarks' ? 'flex' : 'none' }}>
           <BookmarkApp
             sessionName={sessionName}
             onSyncStatusChange={setBookmarksSyncStatus}
           />
         </div>
-        <div style={{ display: activeApp === 'folderico' ? 'block' : 'none', height: '100%', overflow: 'auto' }}>
+        <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>
           <Folderico />
         </div>
       </div>
@@ -126,7 +126,11 @@ export default function App() {
 
 const styles = {
   shell: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' },
-  content: { flex: 1, overflow: 'hidden', position: 'relative' },
+  content: { flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 },
+  tabPane: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    flexDirection: 'column', overflow: 'hidden',
+  },
   switcher: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--bg-toolbar)', borderBottom: '1px solid var(--border-secondary)',
