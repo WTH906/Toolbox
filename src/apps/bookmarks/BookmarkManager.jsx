@@ -808,6 +808,7 @@ const S = {
   content: {
     flex: 1, overflowY: 'auto', padding: '16px 20px 40px',
     display: 'flex', flexDirection: 'column', gap: 8,
+    minHeight: 0,
   },
 
   // ── Folder ──
