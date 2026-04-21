@@ -807,9 +807,9 @@ const S = {
 
   // ── Content ──
   content: {
-    flex: '1 1 0', minHeight: 0,
+    flex: '1 1 0', minHeight: 0, height: 0,
     overflowY: 'auto', padding: '16px 20px 40px',
-    display: 'flex', flexDirection: 'column', gap: 8,
+    display: 'block',
   },
 
   // ── Folder ──
