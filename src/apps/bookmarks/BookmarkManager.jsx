@@ -807,7 +807,7 @@ const S = {
 
   // ── Content ──
   content: {
-    overflowY: 'auto', padding: '16px 20px 40px',
+    flex: '1 1 0', overflowY: 'scroll', padding: '16px 20px 40px',
     display: 'flex', flexDirection: 'column', gap: 8,
   },
 
