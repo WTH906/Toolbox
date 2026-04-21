@@ -617,7 +617,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
     : tags;
 
   return (
-    <>
+    <div style={S.root}>
       {/* ── Top bar ── */}
       <div style={S.topbar}>
         <div style={S.topLeft}>
@@ -732,7 +732,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
 
       {/* ── Toast ── */}
       {toast && <div style={S.toast}>{toast}</div>}
-    </>
+    </div>
   );
 }
 
