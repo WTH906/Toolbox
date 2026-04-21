@@ -742,10 +742,10 @@ export default function BookmarkManager({ initialData, onDataChange }) {
 
 const S = {
   root: {
-    display: 'flex', flexDirection: 'column',
-    position: 'absolute', inset: 0,
+    flex: 1, display: 'flex', flexDirection: 'column',
+    minHeight: 0, overflow: 'hidden',
     background: 'var(--bg-primary)', color: 'var(--text-primary)',
-    fontFamily: 'var(--font-body)', overflow: 'hidden',
+    fontFamily: 'var(--font-body)',
   },
 
   // ── Top bar ──
@@ -807,14 +807,15 @@ const S = {
 
   // ── Content ──
   content: {
-    flex: '1 1 0', overflowY: 'scroll', padding: '16px 20px 40px',
+    flex: '1 1 0', minHeight: 0,
+    overflowY: 'auto', padding: '16px 20px 40px',
     display: 'flex', flexDirection: 'column', gap: 8,
   },
 
   // ── Folder ──
   folder: {
     background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)',
-    borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+    borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 8,
   },
   folderHeader: {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%',
