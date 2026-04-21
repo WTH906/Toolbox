@@ -2,10 +2,10 @@ import { Redis } from '@upstash/redis';
 
 const redis = Redis.fromEnv();
 const PREFIX = 'bridge:';
-const TTL_SECONDS = 60 * 60; // 1 hour — just a handoff, not long-term storage
+const TTL_SECONDS = 60 * 30; // 30 min — just long enough to open the tab
 
 function randomId() {
-  return Math.random().toString(36).slice(2, 10);
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
 export default async function handler(req, res) {
@@ -15,25 +15,30 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // POST — plugin sends note, gets back a short ID
+    // POST: store note content, return short ID
     if (req.method === 'POST') {
-      const { name, content, vault, folder, folders, target } = req.body;
-      if (!content || !name) return res.status(400).json({ error: 'Missing name or content' });
+      const { name, content, vault, folder, folders, target } = req.body || {};
+      if (!name || !content) return res.status(400).json({ error: 'Missing name or content' });
 
       const id = randomId();
-      await redis.set(`${PREFIX}${id}`, { name, content, vault, folder, folders, target }, { ex: TTL_SECONDS });
+      await redis.set(`${PREFIX}${id}`, {
+        name, content, vault: vault || null,
+        folder: folder || null, folders: folders || [],
+        target: target || 'forge',
+      }, { ex: TTL_SECONDS });
+
       return res.status(200).json({ id });
     }
 
-    // GET — app fetches note by ID, then deletes it (one-time use)
+    // GET: retrieve note content by ID
     if (req.method === 'GET') {
       const id = req.query.id;
       if (!id) return res.status(400).json({ error: 'Missing id' });
 
       const data = await redis.get(`${PREFIX}${id}`);
-      if (!data) return res.status(404).json({ error: 'Not found or expired' });
+      if (!data) return res.status(404).json({ error: 'Bridge expired or not found' });
 
-      // One-time read — delete after fetch
+      // Delete after reading — one-time use
       await redis.del(`${PREFIX}${id}`);
       return res.status(200).json(data);
     }

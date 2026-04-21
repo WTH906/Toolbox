@@ -46,7 +46,7 @@ export default function AnnotatorApp({ sessionName: parentSession, onSyncStatusC
           store.restoreNotes([{ markdown: data.markdown, fileName: data.fileName || 'Untitled.md', annotations: data.annotations || [], sourceVault: data.sourceVault || null, sourceFolder: data.sourceFolder || null }]);
         }
       }
-      store.loadFromHash();
+      await store.loadFromHash();
       initialLoadDone.current = true;
     }
     boot();

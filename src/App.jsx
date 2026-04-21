@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import AnnotatorApp from './apps/annotator/AnnotatorApp.jsx';
 import ObsidianForge from './apps/forge/ObsidianForge.jsx';
+import BookmarkApp from './apps/bookmarks/BookmarkApp.jsx';
 import Folderico from './apps/folderico/Folderico.jsx';
 import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
@@ -9,6 +10,7 @@ import { getSessionName, setStoredSessionName } from './shared/useCloudSync.js';
 const TABS = [
   { id: 'forge',     label: 'Obsidian Forge', icon: '✍️' },
   { id: 'annotator', label: 'Annotator',      icon: '📝' },
+  { id: 'bookmarks', label: 'Bookmarks',      icon: '🔖' },
   { id: 'folderico', label: 'Folderico',      icon: '📁' },
 ];
 
@@ -21,9 +23,11 @@ export default function App() {
   // Expose for child sync status
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [annotatorSyncStatus, setAnnotatorSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
+  const [bookmarksSyncStatus, setBookmarksSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
 
   const activeSyncStatus = activeApp === 'forge' ? forgeSyncStatus
     : activeApp === 'annotator' ? annotatorSyncStatus
+    : activeApp === 'bookmarks' ? bookmarksSyncStatus
     : null;
 
   const handleSessionPick = useCallback((name) => {
@@ -94,6 +98,12 @@ export default function App() {
           <AnnotatorApp
             sessionName={sessionName}
             onSyncStatusChange={setAnnotatorSyncStatus}
+          />
+        </div>
+        <div style={{ display: activeApp === 'bookmarks' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+          <BookmarkApp
+            sessionName={sessionName}
+            onSyncStatusChange={setBookmarksSyncStatus}
           />
         </div>
         <div style={{ display: activeApp === 'folderico' ? 'block' : 'none', height: '100%', overflow: 'auto' }}>

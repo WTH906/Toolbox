@@ -443,7 +443,7 @@ export default function ObsidianForge({ sessionName: parentSession, onSyncStatus
         if(data?.templates?.length) setTemplates(data.templates);
       }
       // Check hash for Obsidian bridge
-      loadFromHash();
+      await loadFromHash();
       initialLoadDone.current=true;
     }
     boot();
