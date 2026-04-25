@@ -429,6 +429,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
   const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
   const [search, setSearch] = useState('');
   const [filterTags, setFilterTags] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
   const [dialog, setDialog] = useState(null); // null | 'add' | 'tags' | { edit: bookmark } | { add: url }
   const [toast, setToast] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
@@ -586,13 +587,19 @@ export default function BookmarkManager({ initialData, onDataChange }) {
     let bms = bookmarks;
     if (search.trim()) {
       const q = search.toLowerCase();
-      bms = bms.filter(bm => bm.name.toLowerCase().includes(q) || bm.url.toLowerCase().includes(q) || (bm.notes || '').toLowerCase().includes(q));
+      const tagsById = new Map(tags.map(t => [t.id, t.name.toLowerCase()]));
+      bms = bms.filter(bm =>
+        bm.name.toLowerCase().includes(q)
+        || bm.url.toLowerCase().includes(q)
+        || (bm.notes || '').toLowerCase().includes(q)
+        || bm.tagIds.some(id => (tagsById.get(id) || '').includes(q))
+      );
     }
     if (filterTags.length > 0) {
       bms = bms.filter(bm => filterTags.some(ft => bm.tagIds.includes(ft)));
     }
     return bms.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [bookmarks, search, filterTags]);
+  }, [bookmarks, tags, search, filterTags]);
 
   // Untagged bookmarks
   const untagged = filtered.filter(bm => bm.tagIds.length === 0);
@@ -650,27 +657,45 @@ export default function BookmarkManager({ initialData, onDataChange }) {
             placeholder="Search bookmarks…" />
           {search && <button style={S.clearSearch} onClick={() => setSearch('')}>{ICO.x}</button>}
         </div>
-        <div style={S.filterTags}>
-          {tags.map(tag => {
-            const active = filterTags.includes(tag.id);
-            return (
-              <button key={tag.id}
-                style={{
-                  ...S.filterChip,
-                  background: active ? tag.color + '22' : 'transparent',
-                  borderColor: active ? tag.color : 'var(--border-primary)',
-                  color: active ? tag.color : 'var(--text-tertiary)',
-                }}
-                onClick={() => toggleFilterTag(tag.id)}>
-                <span style={{ ...S.tagDot, background: tag.color, width: 7, height: 7 }} />
-                {tag.name}
-              </button>
-            );
-          })}
+        <button
+          style={{
+            ...S.filterToggle,
+            background: showFilters ? 'var(--bg-primary)' : 'transparent',
+            color: filterTags.length > 0 ? 'var(--accent)' : 'var(--text-secondary)',
+            borderColor: filterTags.length > 0 ? 'var(--accent)' : 'var(--border-primary)',
+          }}
+          onClick={() => setShowFilters(v => !v)}
+          title={showFilters ? 'Hide tag filters' : 'Show tag filters'}>
+          {ICO.tag}
+          <span>Tags</span>
           {filterTags.length > 0 && (
-            <button style={S.clearFilter} onClick={() => setFilterTags([])}>Clear</button>
+            <span style={S.filterToggleBadge}>{filterTags.length}</span>
           )}
-        </div>
+          <span style={S.folderChev}>{showFilters ? ICO.chevDown : ICO.chevRight}</span>
+        </button>
+        {showFilters && (
+          <div style={S.filterTags}>
+            {tags.map(tag => {
+              const active = filterTags.includes(tag.id);
+              return (
+                <button key={tag.id}
+                  style={{
+                    ...S.filterChip,
+                    background: active ? tag.color + '22' : 'transparent',
+                    borderColor: active ? tag.color : 'var(--border-primary)',
+                    color: active ? tag.color : 'var(--text-tertiary)',
+                  }}
+                  onClick={() => toggleFilterTag(tag.id)}>
+                  <span style={{ ...S.tagDot, background: tag.color, width: 7, height: 7 }} />
+                  {tag.name}
+                </button>
+              );
+            })}
+            {filterTags.length > 0 && (
+              <button style={S.clearFilter} onClick={() => setFilterTags([])}>Clear</button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Main content: tag folders ── */}
@@ -689,7 +714,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
           <>
             {visibleTags.map(tag => {
               const tagBookmarks = filtered.filter(bm => bm.tagIds.includes(tag.id));
-              if (tagBookmarks.length === 0 && filterTags.length > 0) return null;
+              if (tagBookmarks.length === 0 && (filterTags.length > 0 || search.trim())) return null;
               return (
                 <TagFolder
                   key={tag.id}
@@ -792,7 +817,22 @@ const S = {
     background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
     display: 'flex', padding: 2, borderRadius: 4,
   },
-  filterTags: { display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' },
+  filterTags: {
+    display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center',
+    maxHeight: 96, overflowY: 'auto', flex: '1 1 100%', minWidth: 0,
+  },
+  filterToggle: {
+    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+    fontSize: 13, fontWeight: 500, borderRadius: 'var(--radius-md)',
+    cursor: 'pointer', border: '1px solid var(--border-primary)',
+    fontFamily: 'var(--font-body)', flexShrink: 0,
+    transition: 'all 120ms',
+  },
+  filterToggleBadge: {
+    fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)',
+    padding: '1px 6px', borderRadius: 99, background: 'var(--accent)',
+    color: 'var(--bg-primary)', minWidth: 16, textAlign: 'center',
+  },
   filterChip: {
     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
     fontSize: 12, fontWeight: 500, borderRadius: 99, cursor: 'pointer',
