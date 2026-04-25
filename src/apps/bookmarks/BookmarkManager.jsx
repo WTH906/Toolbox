@@ -34,6 +34,7 @@ const ICO = {
   sun: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
   moon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
   upload: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+  calendar: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
 };
 
 function getFavicon(url) {
@@ -46,6 +47,26 @@ function getFavicon(url) {
 function getDomain(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); }
   catch { return url; }
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 0) return 'just now';
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return 'just now';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
 }
 
 // Generate a stable color from a string (for letter avatar fallback)
@@ -346,11 +367,12 @@ function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) 
 //  BOOKMARK CARD
 // ===================================================================
 
-function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
+function BookmarkCard({ bookmark, tags, onEdit, onDelete, onVisit }) {
   const favicon = getFavicon(bookmark.url);
   const domain = getDomain(bookmark.url);
   const bookmarkTags = tags.filter(t => bookmark.tagIds.includes(t.id));
   const [faviconOk, setFaviconOk] = useState(true);
+  const visited = bookmark.lastVisitedAt;
 
   return (
     <div style={S.card}>
@@ -362,12 +384,20 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
           }
         </div>
         <div style={S.cardInfo}>
-          <a href={bookmark.url} target="_blank" rel="noopener noreferrer" style={S.cardName}>
+          <a href={bookmark.url} target="_blank" rel="noopener noreferrer" style={S.cardName}
+            onClick={() => onVisit?.(bookmark.id)}
+            onAuxClick={(e) => { if (e.button === 1) onVisit?.(bookmark.id); }}>
             {bookmark.name}
             <span style={S.cardExt}>{ICO.ext}</span>
           </a>
           <span style={S.cardDomain}>{domain}</span>
         </div>
+        {visited && (
+          <span style={S.cardVisited} title={`Last visited: ${new Date(visited).toLocaleString()}`}>
+            {ICO.calendar}
+            <span>{timeAgo(visited)}</span>
+          </span>
+        )}
         <div style={S.cardActions}>
           <button style={S.smallBtn} onClick={() => onEdit(bookmark)} title="Edit">{ICO.edit}</button>
           <button style={{ ...S.smallBtn, color: '#d04040' }} onClick={() => onDelete(bookmark.id)} title="Delete">{ICO.trash}</button>
@@ -393,7 +423,7 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
 //  TAG FOLDER
 // ===================================================================
 
-function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
+function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, onVisit, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen);
   const count = bookmarks.length;
 
@@ -411,7 +441,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
             <p style={S.folderEmpty}>No bookmarks with this tag</p>
           ) : (
             bookmarks.map(bm => (
-              <BookmarkCard key={bm.id} bookmark={bm} tags={allTags} onEdit={onEdit} onDelete={onDelete} />
+              <BookmarkCard key={bm.id} bookmark={bm} tags={allTags} onEdit={onEdit} onDelete={onDelete} onVisit={onVisit} />
             ))
           )}
         </div>
@@ -510,6 +540,11 @@ export default function BookmarkManager({ initialData, onDataChange }) {
   const deleteBookmark = useCallback((id) => {
     setBookmarks(prev => prev.filter(bm => bm.id !== id));
     flash('Bookmark deleted');
+  }, []);
+
+  const markVisited = useCallback((id) => {
+    const now = new Date().toISOString();
+    setBookmarks(prev => prev.map(bm => bm.id === id ? { ...bm, lastVisitedAt: now } : bm));
   }, []);
 
   // ── Chrome import ──
@@ -723,6 +758,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
                   allTags={tags}
                   onEdit={(bm) => setDialog({ edit: bm })}
                   onDelete={deleteBookmark}
+                  onVisit={markVisited}
                   defaultOpen={tagBookmarks.length > 0}
                 />
               );
@@ -734,6 +770,7 @@ export default function BookmarkManager({ initialData, onDataChange }) {
                 allTags={tags}
                 onEdit={(bm) => setDialog({ edit: bm })}
                 onDelete={deleteBookmark}
+                onVisit={markVisited}
                 defaultOpen={true}
               />
             )}
@@ -900,6 +937,12 @@ const S = {
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   cardActions: { display: 'flex', gap: 2, opacity: 0.4, transition: 'opacity 120ms' },
+  cardVisited: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)',
+    padding: '2px 8px', borderRadius: 99, background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-secondary)', flexShrink: 0, whiteSpace: 'nowrap',
+  },
   cardNotes: {
     fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)',
     padding: '4px 8px', margin: '0 0 0 38px', background: 'var(--accent-surface)',
