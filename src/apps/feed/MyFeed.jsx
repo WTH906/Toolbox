@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 const DEFAULT_TOPICS_FR = ["intelligence artificielle", "LLM modeles IA", "IA recrutement RH"];
 const DEFAULT_TOPICS_EN = ["artificial intelligence", "large language models", "AI productivity"];
 const DEFAULT_PRESETS = [
-  { id: 'p_default', name: 'AI & Tech', lang: 'both', topicsFr: DEFAULT_TOPICS_FR, topicsEn: DEFAULT_TOPICS_EN },
+  { id: 'p_default', name: 'AI & Tech', lang: 'both', color: '#b48c50', topicsFr: DEFAULT_TOPICS_FR, topicsEn: DEFAULT_TOPICS_EN },
 ];
 
 // ── RSS fetch ──
@@ -62,6 +62,7 @@ const genPresetId = () => `p_${Date.now().toString(36)}_${++_pc}`;
 function PresetDialog({ preset, onSave, onClose }) {
   const isEdit = !!preset?.id;
   const [name, setName] = useState(preset?.name || '');
+  const [color, setColor] = useState(preset?.color || '#b48c50');
   const [lang, setLang] = useState(preset?.lang || 'both');
   const [tFr, setTFr] = useState(() => {
     const arr = preset?.topicsFr || ['', '', '', '', ''];
@@ -77,6 +78,7 @@ function PresetDialog({ preset, onSave, onClose }) {
     onSave({
       id: preset?.id || genPresetId(),
       name: name.trim(),
+      color,
       lang,
       topicsFr: tFr.map(t => t.trim()).filter(Boolean),
       topicsEn: tEn.map(t => t.trim()).filter(Boolean),
@@ -93,6 +95,16 @@ function PresetDialog({ preset, onSave, onClose }) {
         <div style={S.dialogBody}>
           <label style={S.label}>Preset name</label>
           <input style={S.input} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Finance, Crypto..." autoFocus />
+
+          <label style={S.label}>Color</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <input type="color" value={color} onChange={e => setColor(e.target.value)}
+              style={{ width: 32, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+            <input style={{ ...S.input, width: 90, fontFamily: 'var(--font-mono)', fontSize: 12, textAlign: 'center', marginBottom: 0 }}
+              value={color} onChange={e => { const v = e.target.value.startsWith('#') ? e.target.value : '#' + e.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setColor(v); }}
+              placeholder="#hex" maxLength={7} />
+            <div style={{ width: 40, height: 24, borderRadius: 6, background: color, border: '1px solid var(--border-primary)' }} />
+          </div>
 
           <label style={S.label}>Language</label>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
@@ -165,7 +177,7 @@ function ArticleCard({ article, index, onReadLater, alreadySaved }) {
       )}
       <a href={article.link} target="_blank" rel="noopener noreferrer"
         style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-mono)", fontWeight: 500, opacity: hovered ? 1 : 0.5, transition: "opacity 0.15s" }}>
-        Read article &rarr;
+        Read article →
       </a>
     </div>
   );
@@ -292,7 +304,7 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, background: "var(--accent)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 16 }}>&#x26A1;</span>
+              <span style={{ fontSize: 16 }}>⚡</span>
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.03em" }}>My Feed</h1>
@@ -304,7 +316,7 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => setPresetDialog('new')} style={S.headerBtn} title="New preset">+</button>
             <button onClick={handleRefresh} disabled={isLoading} style={{ ...S.headerBtn, opacity: isLoading ? 0.4 : 1 }}>
-              <span style={{ display: "inline-block", animation: isLoading ? "spin 1s linear infinite" : "none" }}>&orarr;</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ display: "inline-block", animation: isLoading ? "spin 1s linear infinite" : "none" }}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             </button>
           </div>
         </div>
@@ -312,17 +324,31 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
         {/* Presets bar */}
         {presets.length > 0 && (
           <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-            {presets.map(p => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <button onClick={() => applyPreset(p)}
-                  style={{ ...S.presetChip, ...(activePreset === p.id ? S.presetChipActive : {}) }}>
-                  {p.name}
-                  {p.lang === 'fr' ? ' 🇫🇷' : p.lang === 'en' ? ' 🇬🇧' : ' 🌐'}
-                </button>
-                <button onClick={() => setPresetDialog({ edit: p })} style={S.presetEdit} title="Edit">&#x270E;</button>
-                <button onClick={() => deletePreset(p.id)} style={S.presetDel} title="Delete">&times;</button>
-              </div>
-            ))}
+            {presets.map(p => {
+              const isActive = activePreset === p.id;
+              const c = p.color || '#b48c50';
+              return (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <button onClick={() => applyPreset(p)}
+                    style={{ ...S.presetChip,
+                      background: isActive ? c : c + '18',
+                      color: isActive ? "#fff" : c,
+                      borderColor: isActive ? c : c + '50',
+                    }}>
+                    {p.name}
+                    {p.lang === 'fr' ? ' \uD83C\uDDEB\uD83C\uDDF7' : p.lang === 'en' ? ' \uD83C\uDDEC\uD83C\uDDE7' : ' \uD83C\uDF10'}
+                  </button>
+                  <button onClick={() => setPresetDialog({ edit: p })}
+                    style={{ ...S.presetEdit, borderColor: c + '50', color: c }} title="Edit">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={() => deletePreset(p.id)}
+                    style={{ ...S.presetDel, borderColor: c + '50', color: c }} title="Delete">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -349,13 +375,13 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
           {loading && articles.length === 0 ? [...Array(5)].map((_, i) => <SkeletonCard key={i} />)
             : error ? (
               <div style={{ padding: "48px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>&#x26A0;&#xFE0F;</div>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
                 <p style={{ color: "var(--text-secondary)", fontSize: 14, margin: "0 0 16px" }}>{error}</p>
                 <button onClick={() => fetchAll(activeTab, activeTab === "fr" ? topicsFr : topicsEn)} style={S.accentBtn}>Retry</button>
               </div>
             ) : articles.length === 0 ? (
               <div style={{ padding: "48px 24px", textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>&#x1F4ED;</div>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
                 <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>No articles found.</p>
               </div>
             ) : articles.map((article, i) => (
@@ -400,12 +426,12 @@ const S = {
     background: "var(--accent-subtle)", color: "var(--accent)", borderColor: "var(--accent)",
   },
   presetEdit: {
-    padding: "5px 6px", border: "1px solid var(--border-primary)", borderRight: "none", borderLeft: "none",
-    background: "none", color: "var(--text-tertiary)", cursor: "pointer", fontSize: 11, transition: "all 0.12s",
+    padding: "5px 8px", border: "1px solid var(--border-primary)", borderRight: "none", borderLeft: "none",
+    background: "var(--bg-surface)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, transition: "all 0.12s",
   },
   presetDel: {
-    padding: "5px 8px", borderRadius: "0 8px 8px 0", border: "1px solid var(--border-primary)",
-    background: "none", color: "var(--text-tertiary)", cursor: "pointer", fontSize: 14, transition: "all 0.12s",
+    padding: "5px 10px", borderRadius: "0 8px 8px 0", border: "1px solid var(--border-primary)",
+    background: "var(--bg-surface)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 15, transition: "all 0.12s",
   },
   backdrop: {
     position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(3px)",
