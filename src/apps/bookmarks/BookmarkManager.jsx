@@ -424,7 +424,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
 //  MAIN COMPONENT
 // ===================================================================
 
-export default function BookmarkManager({ initialData, onDataChange }) {
+export default function BookmarkManager({ initialData, onDataChange, externalAdd }) {
   const [tags, setTags] = useState(initialData?.tags || DEFAULT_TAGS);
   const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
   const [search, setSearch] = useState('');
@@ -438,6 +438,23 @@ export default function BookmarkManager({ initialData, onDataChange }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  // ── External add (from Reading List) ──
+  useEffect(() => {
+    if (!externalAdd?.url) return;
+    // Ensure "Articles" tag exists
+    let artTag = tags.find(t => t.name.toLowerCase() === 'articles');
+    if (!artTag) {
+      artTag = { id: genId('tag'), name: 'Articles', color: '#448aff' };
+      setTags(prev => [...prev, artTag]);
+    }
+    // Check for duplicate
+    if (bookmarks.some(b => b.url.toLowerCase() === externalAdd.url.toLowerCase())) return;
+    // Add bookmark
+    const bm = { id: genId('bm'), url: externalAdd.url, name: externalAdd.name || '', notes: '', tagIds: [artTag.id], createdAt: new Date().toISOString() };
+    setBookmarks(prev => [bm, ...prev]);
+    flash('Article saved to Bookmarks');
+  }, [externalAdd]);
 
   // ── Paste-and-go: detect URL paste anywhere, auto-open Add dialog ──
   useEffect(() => {

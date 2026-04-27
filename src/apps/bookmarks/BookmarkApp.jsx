@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import BookmarkManager from './BookmarkManager.jsx';
 import useCloudSync from '../../shared/useCloudSync.js';
 
-export default function BookmarkApp({ sessionName: parentSession, onSyncStatusChange }) {
+export default function BookmarkApp({ sessionName: parentSession, onSyncStatusChange, externalAdd }) {
   const cloud = useCloudSync('bookmarks');
   const [initialData, setInitialData] = useState(null);
   const bootRan = useRef(false);
@@ -39,5 +39,5 @@ export default function BookmarkApp({ sessionName: parentSession, onSyncStatusCh
     cloud.saveToCloud(data);
   }, [cloud.hasSession, cloud.saveToCloud]);
 
-  return <BookmarkManager initialData={initialData} onDataChange={handleDataChange} />;
+  return <BookmarkManager initialData={initialData} onDataChange={handleDataChange} externalAdd={externalAdd} />;
 }

@@ -1,19 +1,21 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import AnnotatorApp from './apps/annotator/AnnotatorApp.jsx';
 import ObsidianForge from './apps/forge/ObsidianForge.jsx';
 import BookmarkApp from './apps/bookmarks/BookmarkApp.jsx';
 import FeedApp from './apps/feed/FeedApp.jsx';
+import ReadingListApp from './apps/reading/ReadingListApp.jsx';
 import Folderico from './apps/folderico/Folderico.jsx';
 import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
 import { getSessionName, setStoredSessionName } from './shared/useCloudSync.js';
 
 const TABS = [
-  { id: 'forge',     label: 'Obsidian Forge', icon: '✍️' },
-  { id: 'annotator', label: 'Annotator',      icon: '📝' },
-  { id: 'bookmarks', label: 'Bookmarks',      icon: '🔖' },
-  { id: 'feed',      label: 'My Feed',        icon: '⚡' },
-  { id: 'folderico', label: 'Folderico',      icon: '📁' },
+  { id: 'forge',     label: 'Obsidian Forge', icon: '\u270D\uFE0F' },
+  { id: 'annotator', label: 'Annotator',      icon: '\uD83D\uDCDD' },
+  { id: 'bookmarks', label: 'Bookmarks',      icon: '\uD83D\uDD16' },
+  { id: 'feed',      label: 'My Feed',        icon: '\u26A1' },
+  { id: 'reading',   label: 'Reading List',   icon: '\uD83D\uDCD6' },
+  { id: 'folderico', label: 'Folderico',      icon: '\uD83D\uDCC1' },
 ];
 
 export default function App() {
@@ -22,18 +24,34 @@ export default function App() {
   const [sessionName, setSessionName] = useState(() => getSessionName());
   const [showSessionPicker, setShowSessionPicker] = useState(() => !getSessionName());
 
-  // Expose for child sync status
+  // Sync status for each app
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [annotatorSyncStatus, setAnnotatorSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [bookmarksSyncStatus, setBookmarksSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [feedSyncStatus, setFeedSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
+  const [readingSyncStatus, setReadingSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
 
-  const activeSyncStatus = activeApp === 'forge' ? forgeSyncStatus
-    : activeApp === 'annotator' ? annotatorSyncStatus
-    : activeApp === 'bookmarks' ? bookmarksSyncStatus
-    : activeApp === 'feed' ? feedSyncStatus
-    : null;
+  const activeSyncStatus = { forge: forgeSyncStatus, annotator: annotatorSyncStatus, bookmarks: bookmarksSyncStatus, feed: feedSyncStatus, reading: readingSyncStatus }[activeApp] || null;
 
+  // ── Cross-tab communication ──
+  // Feed → Reading List: article to add
+  const [readLaterItem, setReadLaterItem] = useState(null);
+  // Reading List → Bookmarks: article to bookmark
+  const [bookmarkToAdd, setBookmarkToAdd] = useState(null);
+  // Reading list links (for "already saved" in feed)
+  const [readingListLinks, setReadingListLinks] = useState([]);
+  const readingListRef = useRef(null);
+
+  const handleReadLater = useCallback((article) => {
+    // Trigger with a new object ref each time (even for same article)
+    setReadLaterItem({ ...article, _ts: Date.now() });
+  }, []);
+
+  const handleSaveToBookmarks = useCallback((item) => {
+    setBookmarkToAdd({ url: item.link, name: item.title, source: item.source, _ts: Date.now() });
+  }, []);
+
+  // ── Session ──
   const handleSessionPick = useCallback((name) => {
     const clean = name.trim().toLowerCase();
     setStoredSessionName(clean);
@@ -41,11 +59,7 @@ export default function App() {
     setShowSessionPicker(false);
   }, []);
 
-  const handleChangeSession = useCallback(() => {
-    setShowSessionPicker(true);
-  }, []);
-
-  // Check if Obsidian bridge hash is present — auto-route to correct app
+  // Obsidian bridge auto-routing
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     if (!hash) return;
@@ -54,24 +68,19 @@ export default function App() {
       const target = params.get('target');
       if (target === 'forge') setActiveApp('forge');
       else if (target === 'annotator') setActiveApp('annotator');
-    } catch { /* ignore */ }
+    } catch {}
   }, []);
 
-  if (showSessionPicker) {
-    return <SessionPicker onPick={handleSessionPick} />;
-  }
+  if (showSessionPicker) return <SessionPicker onPick={handleSessionPick} />;
 
   return (
     <div style={styles.shell}>
-      {/* ── Tab Bar ── */}
+      {/* Tab Bar */}
       <div style={{ ...styles.switcher, ...(tabBarVisible ? {} : styles.switcherHidden) }}>
         <div style={styles.switcherInner}>
           {TABS.map((t) => (
-            <button
-              key={t.id}
-              style={{ ...styles.tab, ...(activeApp === t.id ? styles.tabActive : {}) }}
-              onClick={() => setActiveApp(t.id)}
-            >
+            <button key={t.id} style={{ ...styles.tab, ...(activeApp === t.id ? styles.tabActive : {}) }}
+              onClick={() => setActiveApp(t.id)}>
               <span style={styles.tabIcon}>{t.icon}</span> {t.label}
             </button>
           ))}
@@ -82,7 +91,6 @@ export default function App() {
         </button>
       </div>
 
-      {/* ── Float toggle ── */}
       {!tabBarVisible && (
         <button style={styles.floatToggle} onClick={() => setTabBarVisible(true)}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -90,45 +98,34 @@ export default function App() {
         </button>
       )}
 
-      {/* ── App Content ── */}
+      {/* App Content */}
       <div style={styles.content}>
         <div style={{ ...styles.tabPane, display: activeApp === 'forge' ? 'flex' : 'none' }}>
-          <ObsidianForge
-            sessionName={sessionName}
-            onSyncStatusChange={setForgeSyncStatus}
-          />
+          <ObsidianForge sessionName={sessionName} onSyncStatusChange={setForgeSyncStatus} />
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'annotator' ? 'flex' : 'none' }}>
-          <AnnotatorApp
-            sessionName={sessionName}
-            onSyncStatusChange={setAnnotatorSyncStatus}
-          />
+          <AnnotatorApp sessionName={sessionName} onSyncStatusChange={setAnnotatorSyncStatus} />
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'bookmarks' ? 'flex' : 'none' }}>
-          <BookmarkApp
-            sessionName={sessionName}
-            onSyncStatusChange={setBookmarksSyncStatus}
-          />
+          <BookmarkApp sessionName={sessionName} onSyncStatusChange={setBookmarksSyncStatus} externalAdd={bookmarkToAdd} />
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'feed' ? 'block' : 'none', overflow: 'auto' }}>
-          <FeedApp
-            sessionName={sessionName}
-            onSyncStatusChange={setFeedSyncStatus}
-          />
+          <FeedApp sessionName={sessionName} onSyncStatusChange={setFeedSyncStatus}
+            onReadLater={handleReadLater} readingListLinks={readingListLinks} />
+        </div>
+        <div style={{ ...styles.tabPane, display: activeApp === 'reading' ? 'flex' : 'none' }}>
+          <ReadingListApp sessionName={sessionName} onSyncStatusChange={setReadingSyncStatus}
+            externalAdd={readLaterItem} onSaveToBookmarks={handleSaveToBookmarks}
+            onLinksChange={setReadingListLinks} />
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>
           <Folderico />
         </div>
       </div>
 
-      {/* ── Shared Sync Status ── */}
       {activeApp !== 'folderico' && activeSyncStatus && (
-        <SyncStatus
-          sessionName={sessionName}
-          syncStatus={activeSyncStatus.status}
-          lastSavedAt={activeSyncStatus.lastSavedAt}
-          onChangeSession={handleChangeSession}
-        />
+        <SyncStatus sessionName={sessionName} syncStatus={activeSyncStatus.status}
+          lastSavedAt={activeSyncStatus.lastSavedAt} onChangeSession={() => setShowSessionPicker(true)} />
       )}
     </div>
   );
@@ -137,10 +134,7 @@ export default function App() {
 const styles = {
   shell: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' },
   content: { flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 },
-  tabPane: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    flexDirection: 'column', overflow: 'hidden',
-  },
+  tabPane: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'column', overflow: 'hidden' },
   switcher: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--bg-toolbar)', borderBottom: '1px solid var(--border-secondary)',
@@ -150,30 +144,25 @@ const styles = {
   switcherHidden: { maxHeight: 0, opacity: 0, borderBottomColor: 'transparent' },
   switcherInner: { display: 'flex', alignItems: 'stretch', gap: 0 },
   tab: {
-    padding: '14px 28px', border: 'none', background: 'none', color: 'var(--text-tertiary)',
-    fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 8,
-    letterSpacing: '0.3px', position: 'relative', whiteSpace: 'nowrap',
+    padding: '14px 20px', border: 'none', background: 'none', color: 'var(--text-tertiary)',
+    fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+    transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6,
+    letterSpacing: '0.2px', position: 'relative', whiteSpace: 'nowrap',
   },
-  tabActive: {
-    color: 'var(--text-primary)', background: 'var(--accent-subtle)',
-    boxShadow: 'inset 0 -2px 0 var(--accent)',
-  },
-  tabIcon: { fontSize: 16, lineHeight: 1 },
+  tabActive: { color: 'var(--text-primary)', background: 'var(--accent-subtle)', boxShadow: 'inset 0 -2px 0 var(--accent)' },
+  tabIcon: { fontSize: 14, lineHeight: 1 },
   hideBtn: {
     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
     background: 'var(--bg-hover)', border: '1px solid var(--border-secondary)',
     color: 'var(--text-tertiary)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
-    fontSize: 11, fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-    display: 'flex', alignItems: 'center', gap: 4, zIndex: 2,
+    fontSize: 11, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, zIndex: 2,
   },
   floatToggle: {
     position: 'fixed', top: 8, right: 12, zIndex: 100,
     background: 'var(--bg-surface)', backdropFilter: 'blur(12px)',
     border: '1px solid var(--border-primary)', color: 'var(--text-secondary)',
-    borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
-    fontSize: 11, fontFamily: 'var(--font-body)', transition: 'all 0.2s',
-    display: 'flex', alignItems: 'center', gap: 5,
+    borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 11,
+    fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 5,
     boxShadow: 'var(--shadow-md)',
   },
 };
