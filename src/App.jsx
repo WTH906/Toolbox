@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import AnnotatorApp from './apps/annotator/AnnotatorApp.jsx';
 import ObsidianForge from './apps/forge/ObsidianForge.jsx';
 import BookmarkApp from './apps/bookmarks/BookmarkApp.jsx';
+import FeedApp from './apps/feed/FeedApp.jsx';
 import Folderico from './apps/folderico/Folderico.jsx';
 import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
@@ -11,6 +12,7 @@ const TABS = [
   { id: 'forge',     label: 'Obsidian Forge', icon: '✍️' },
   { id: 'annotator', label: 'Annotator',      icon: '📝' },
   { id: 'bookmarks', label: 'Bookmarks',      icon: '🔖' },
+  { id: 'feed',      label: 'My Feed',        icon: '⚡' },
   { id: 'folderico', label: 'Folderico',      icon: '📁' },
 ];
 
@@ -24,10 +26,12 @@ export default function App() {
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [annotatorSyncStatus, setAnnotatorSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [bookmarksSyncStatus, setBookmarksSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
+  const [feedSyncStatus, setFeedSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
 
   const activeSyncStatus = activeApp === 'forge' ? forgeSyncStatus
     : activeApp === 'annotator' ? annotatorSyncStatus
     : activeApp === 'bookmarks' ? bookmarksSyncStatus
+    : activeApp === 'feed' ? feedSyncStatus
     : null;
 
   const handleSessionPick = useCallback((name) => {
@@ -104,6 +108,12 @@ export default function App() {
           <BookmarkApp
             sessionName={sessionName}
             onSyncStatusChange={setBookmarksSyncStatus}
+          />
+        </div>
+        <div style={{ ...styles.tabPane, display: activeApp === 'feed' ? 'block' : 'none', overflow: 'auto' }}>
+          <FeedApp
+            sessionName={sessionName}
+            onSyncStatusChange={setFeedSyncStatus}
           />
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>

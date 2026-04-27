@@ -2,7 +2,7 @@ import { Redis } from '@upstash/redis';
 
 const redis = Redis.fromEnv();
 
-const PREFIXES = { annotator: 'mda:', forge: 'forge:', bookmarks: 'bm:', default: 'mda:' };
+const PREFIXES = { annotator: 'mda:', forge: 'forge:', bookmarks: 'bm:', feed: 'feed:', default: 'mda:' };
 const MAX_SIZE = 5 * 1024 * 1024;
 const TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
 
@@ -38,6 +38,9 @@ export default async function handler(req, res) {
       if (app === 'bookmarks') {
         payload.tags = body.tags || [];
         payload.bookmarks = body.bookmarks || [];
+      } else if (app === 'feed') {
+        payload.topicsFr = body.topicsFr || [];
+        payload.topicsEn = body.topicsEn || [];
       } else if (app === 'forge') {
         payload.docs = body.docs || [];
         payload.templates = body.templates || [];
