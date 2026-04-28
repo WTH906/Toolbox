@@ -715,7 +715,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
           <>
             {visibleTags.map(tag => {
               const tagBookmarks = filtered.filter(bm => bm.tagIds.includes(tag.id));
-              if (tagBookmarks.length === 0 && filterTags.length > 0) return null;
+              if (tagBookmarks.length === 0 && (filterTags.length > 0 || search.trim())) return null;
               return (
                 <TagFolder
                   key={tag.id}
@@ -724,7 +724,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                   allTags={tags}
                   onEdit={(bm) => setDialog({ edit: bm })}
                   onDelete={deleteBookmark}
-                  defaultOpen={false}
+                  defaultOpen={search.trim() ? tagBookmarks.length > 0 : false}
                 />
               );
             })}
@@ -735,7 +735,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                 allTags={tags}
                 onEdit={(bm) => setDialog({ edit: bm })}
                 onDelete={deleteBookmark}
-                defaultOpen={false}
+                defaultOpen={search.trim() ? untagged.length > 0 : false}
               />
             )}
           </>
