@@ -393,14 +393,9 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
 //  TAG FOLDER
 // ===================================================================
 
-function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, forceOpen }) {
+function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen);
   const count = bookmarks.length;
-
-  // Respond to expand/collapse all button
-  useEffect(() => {
-    setOpen(forceOpen);
-  }, [forceOpen]);
 
   // Auto-open when search finds results in this folder
   useEffect(() => {
@@ -442,7 +437,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
   const [dialog, setDialog] = useState(null); // null | 'add' | 'tags' | { edit: bookmark } | { add: url }
   const [toast, setToast] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
-  const [allOpen, setAllOpen] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const importRef = useRef(null);
 
   // Apply theme
@@ -664,9 +659,6 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
           <button style={S.outlineBtn} onClick={() => setDialog('tags')}>
             {ICO.tag} Manage Tags
           </button>
-          <button style={S.outlineBtn} onClick={() => setAllOpen(v => !v)} title={allOpen ? "Collapse all" : "Expand all"}>
-            {allOpen ? ICO.chevDown : ICO.chevRight} {allOpen ? 'Collapse' : 'Expand'}
-          </button>
           <button style={S.themeBtn} onClick={() => setDarkMode(v => !v)} title="Toggle theme">
             {darkMode ? ICO.sun : ICO.moon}
           </button>
@@ -681,7 +673,16 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
             placeholder="Search bookmarks…" />
           {search && <button style={S.clearSearch} onClick={() => setSearch('')}>{ICO.x}</button>}
         </div>
-        <div style={S.filterTags}>
+        <button style={{ ...S.tagToggleBtn, ...(showTags ? S.tagToggleBtnActive : {}) }}
+          onClick={() => setShowTags(v => !v)}>
+          {ICO.tag} Tags ({tags.length}) {showTags ? ICO.chevDown : ICO.chevRight}
+        </button>
+        {filterTags.length > 0 && (
+          <button style={S.clearFilter} onClick={() => setFilterTags([])}>Clear filters</button>
+        )}
+      </div>
+      {showTags && (
+        <div style={S.tagPanel}>
           {tags.map(tag => {
             const active = filterTags.includes(tag.id);
             return (
@@ -698,11 +699,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
               </button>
             );
           })}
-          {filterTags.length > 0 && (
-            <button style={S.clearFilter} onClick={() => setFilterTags([])}>Clear</button>
-          )}
         </div>
-      </div>
+      )}
 
       {/* ── Main content: tag folders ── */}
       <div style={S.content}>
@@ -730,7 +728,6 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                   onEdit={(bm) => setDialog({ edit: bm })}
                   onDelete={deleteBookmark}
                   defaultOpen={false}
-                  forceOpen={allOpen}
                 />
               );
             })}
@@ -825,7 +822,22 @@ const S = {
     background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
     display: 'flex', padding: 2, borderRadius: 4,
   },
-  filterTags: { display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' },
+  tagToggleBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px',
+    fontSize: 12, fontWeight: 500, borderRadius: 'var(--radius-md)', cursor: 'pointer',
+    border: '1px solid var(--border-primary)', background: 'none',
+    color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', transition: 'all 120ms',
+    whiteSpace: 'nowrap', flexShrink: 0,
+  },
+  tagToggleBtnActive: {
+    background: 'var(--accent-subtle)', color: 'var(--accent)', borderColor: 'var(--accent)',
+  },
+  tagPanel: {
+    display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center',
+    padding: '8px 20px 12px', background: 'var(--bg-toolbar)',
+    borderBottom: '1px solid var(--border-secondary)', flexShrink: 0,
+    maxHeight: 200, overflowY: 'auto',
+  },
   filterChip: {
     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
     fontSize: 12, fontWeight: 500, borderRadius: 99, cursor: 'pointer',
