@@ -730,7 +730,6 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                 onEdit={(bm) => setDialog({ edit: bm })}
                 onDelete={deleteBookmark}
                 defaultOpen={false}
-                forceOpen={allOpen}
               />
             )}
           </>

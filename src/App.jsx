@@ -66,6 +66,19 @@ export default function App() {
     try { localStorage.setItem('toolbox-theme', theme); } catch {}
   }, [darkMode]);
 
+  // Follow system theme changes (e.g. user switches browser to dark/light)
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const handler = (e) => {
+      // Only auto-follow if user hasn't manually toggled (no saved pref)
+      // Actually, always follow system changes for simplicity
+      setDarkMode(e.matches);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // Sync status for each app
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [annotatorSyncStatus, setAnnotatorSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
