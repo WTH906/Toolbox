@@ -603,13 +603,19 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
     let bms = bookmarks;
     if (search.trim()) {
       const q = search.toLowerCase();
-      bms = bms.filter(bm => bm.name.toLowerCase().includes(q) || bm.url.toLowerCase().includes(q) || (bm.notes || '').toLowerCase().includes(q));
+      const tagNameMap = new Map(tags.map(t => [t.id, t.name.toLowerCase()]));
+      bms = bms.filter(bm =>
+        bm.name.toLowerCase().includes(q) ||
+        bm.url.toLowerCase().includes(q) ||
+        (bm.notes || '').toLowerCase().includes(q) ||
+        bm.tagIds.some(tid => (tagNameMap.get(tid) || '').includes(q))
+      );
     }
     if (filterTags.length > 0) {
       bms = bms.filter(bm => filterTags.some(ft => bm.tagIds.includes(ft)));
     }
     return bms.slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-  }, [bookmarks, search, filterTags]);
+  }, [bookmarks, tags, search, filterTags]);
 
   // Untagged bookmarks
   const untagged = filtered.filter(bm => bm.tagIds.length === 0);
