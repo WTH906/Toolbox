@@ -393,9 +393,19 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
 //  TAG FOLDER
 // ===================================================================
 
-function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
+function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, forceOpen }) {
   const [open, setOpen] = useState(defaultOpen);
   const count = bookmarks.length;
+
+  // Respond to expand/collapse all button
+  useEffect(() => {
+    setOpen(forceOpen);
+  }, [forceOpen]);
+
+  // Auto-open when search finds results in this folder
+  useEffect(() => {
+    if (defaultOpen) setOpen(true);
+  }, [defaultOpen]);
 
   return (
     <div style={S.folder}>
@@ -432,6 +442,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
   const [dialog, setDialog] = useState(null); // null | 'add' | 'tags' | { edit: bookmark } | { add: url }
   const [toast, setToast] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
+  const [allOpen, setAllOpen] = useState(false);
   const importRef = useRef(null);
 
   // Apply theme
@@ -653,6 +664,9 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
           <button style={S.outlineBtn} onClick={() => setDialog('tags')}>
             {ICO.tag} Manage Tags
           </button>
+          <button style={S.outlineBtn} onClick={() => setAllOpen(v => !v)} title={allOpen ? "Collapse all" : "Expand all"}>
+            {allOpen ? ICO.chevDown : ICO.chevRight} {allOpen ? 'Collapse' : 'Expand'}
+          </button>
           <button style={S.themeBtn} onClick={() => setDarkMode(v => !v)} title="Toggle theme">
             {darkMode ? ICO.sun : ICO.moon}
           </button>
@@ -715,7 +729,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                   allTags={tags}
                   onEdit={(bm) => setDialog({ edit: bm })}
                   onDelete={deleteBookmark}
-                  defaultOpen={tagBookmarks.length > 0}
+                  defaultOpen={false}
+                  forceOpen={allOpen}
                 />
               );
             })}
@@ -726,7 +741,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                 allTags={tags}
                 onEdit={(bm) => setDialog({ edit: bm })}
                 onDelete={deleteBookmark}
-                defaultOpen={true}
+                defaultOpen={false}
+                forceOpen={allOpen}
               />
             )}
           </>

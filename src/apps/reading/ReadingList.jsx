@@ -64,7 +64,7 @@ export default function ReadingList({ items = [], onToggleRead, onRemove, onSave
                 style={S.checkbox} title={item.read ? "Mark unread" : "Mark as read"}>
                 {item.read
                   ? <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="9 11 12 14 16 9" stroke="#fff" strokeWidth="2.5" fill="none"/></svg>
-                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--border-primary)" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" opacity="0.5"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
                 }
               </button>
 
@@ -104,7 +104,8 @@ export default function ReadingList({ items = [], onToggleRead, onRemove, onSave
 
 const S = {
   root: {
-    display: 'flex', flexDirection: 'column', height: '100%', width: '100%',
+    flex: 1, display: 'flex', flexDirection: 'column',
+    minHeight: 0, overflow: 'hidden',
     background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
   },
   topbar: {
