@@ -24,10 +24,20 @@ export default function App() {
   const [sessionName, setSessionName] = useState(() => getSessionName());
   const [showSessionPicker, setShowSessionPicker] = useState(() => !getSessionName());
 
-  // Set dark theme globally on mount so CSS vars are defined for all tabs
+  // ── Global theme ──
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('toolbox-theme');
+      if (saved) return saved === 'dark';
+    } catch {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
+  });
+
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }, []);
+    const theme = darkMode ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('toolbox-theme', theme); } catch {}
+  }, [darkMode]);
 
   // Sync status for each app
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
@@ -90,10 +100,18 @@ export default function App() {
             </button>
           ))}
         </div>
-        <button style={styles.hideBtn} onClick={() => setTabBarVisible(false)}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>
-          Hide
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 2 }}>
+          <button style={styles.barBtn} onClick={() => setDarkMode(v => !v)} title="Toggle theme">
+            {darkMode
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+          </button>
+          <button style={styles.barBtn} onClick={() => setTabBarVisible(false)}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>
+            Hide
+          </button>
+        </div>
       </div>
 
       {!tabBarVisible && (
@@ -156,11 +174,10 @@ const styles = {
   },
   tabActive: { color: 'var(--text-primary)', background: 'var(--accent-subtle)', boxShadow: 'inset 0 -2px 0 var(--accent)' },
   tabIcon: { fontSize: 14, lineHeight: 1 },
-  hideBtn: {
-    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-    background: 'var(--bg-hover)', border: '1px solid var(--border-secondary)',
-    color: 'var(--text-tertiary)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
-    fontSize: 11, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, zIndex: 2,
+  barBtn: {
+    background: 'var(--bg-hover, #2a2927)', border: '1px solid var(--border-secondary, #2e2d2a)',
+    color: 'var(--text-tertiary, #6e6960)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+    fontSize: 11, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4,
   },
   floatToggle: {
     position: 'fixed', top: 8, right: 12, zIndex: 100,

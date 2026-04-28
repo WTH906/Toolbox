@@ -12,12 +12,14 @@ import useCloudSync from '../../shared/useCloudSync.js';
 import { exportToWord } from './exportToWord.js';
 
 export default function AnnotatorApp({ sessionName: parentSession, onSyncStatusChange }) {
-  const [darkMode, setDarkMode] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches || false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dragging, setDragging] = useState(false);
   const [pendingSelection, setPendingSelection] = useState(null);
   const [vaultDialogOpen, setVaultDialogOpen] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+
+  // Read theme from document (managed by App.jsx)
+  const darkMode = document.documentElement.getAttribute('data-theme') === 'dark';
 
   const store = useNoteStore();
   const cloud = useCloudSync('annotator');
@@ -65,9 +67,6 @@ export default function AnnotatorApp({ sessionName: parentSession, onSyncStatusC
     if (!initialLoadDone.current || !cloud.hasSession) return;
     cloud.saveToCloud({ notes: store.serialise() });
   }, [store.notes, cloud.hasSession]);
-
-  // Theme
-  useEffect(() => { document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light'); }, [darkMode]);
 
   // Drag & drop
   useEffect(() => {
@@ -148,7 +147,6 @@ export default function AnnotatorApp({ sessionName: parentSession, onSyncStatusC
         onSummary={() => setSummaryDialogOpen(true)}
         hasSummary={!!note?.summary}
         darkMode={darkMode}
-        onToggleTheme={() => setDarkMode((v) => !v)}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
       />

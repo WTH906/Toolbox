@@ -410,13 +410,13 @@ export default function ObsidianForge({ sessionName: parentSession, onSyncStatus
   const [pending,setPending]=useState(null);
   const [toast,setToast]=useState(null);
   const [showSidebar,setShowSidebar]=useState(true);
-  const [theme,setTheme]=useState(()=>{try{return localStorage.getItem("obsidian-forge-theme")||"dark"}catch{return"dark"}});
   const [vaultDialogOpen,setVaultDialogOpen]=useState(false);
   const [sourceVault,setSourceVault]=useState('');
   const [sourceFolder,setSourceFolder]=useState('');
   const [vaultFolders,setVaultFolders]=useState([]);
   const cmViewRef=useRef(null);
-  const isDark=theme==="dark";
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const theme=isDark?'dark':'light';
   const bootRan=useRef(false);
   const initialLoadDone=useRef(false);
 
@@ -513,9 +513,6 @@ export default function ObsidianForge({ sessionName: parentSession, onSyncStatus
     cloud.saveToCloud({ docs, templates });
   },[docs,templates,cloud.hasSession]);
 
-  // Theme persistence (stays local — it's a preference)
-  useEffect(()=>{try{localStorage.setItem("obsidian-forge-theme",theme)}catch{}},[theme]);
-
   // Send to Obsidian vault
   const sendToVault=(vaultName,folderPath)=>{
     const d=docs[activeDoc];
@@ -590,7 +587,6 @@ export default function ObsidianForge({ sessionName: parentSession, onSyncStatus
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"><path d="M8.3 3.4L15 2l4.2 5.5-.7 11L12 22l-7.3-4.5L4 7l4.3-3.6z"/></svg>
               <span className="btn-label">Obsidian</span>
             </button>
-            <button className="icon-btn" onClick={()=>setTheme(isDark?"light":"dark")} title="Toggle theme">{isDark?I.sun:I.moon}</button>
           </div>
         </div>
 

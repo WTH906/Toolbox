@@ -436,14 +436,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
   const [filterTags, setFilterTags] = useState([]);
   const [dialog, setDialog] = useState(null); // null | 'add' | 'tags' | { edit: bookmark } | { add: url }
   const [toast, setToast] = useState(null);
-  const [darkMode, setDarkMode] = useState(true);
   const [showTags, setShowTags] = useState(false);
   const importRef = useRef(null);
-
-  // Apply theme
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
 
   // ── External add (from Reading List) ──
   useEffect(() => {
@@ -658,9 +652,6 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
           <input ref={importRef} type="file" accept=".html,.htm" onChange={handleChromeImport} style={{ display: 'none' }} />
           <button style={S.outlineBtn} onClick={() => setDialog('tags')}>
             {ICO.tag} Manage Tags
-          </button>
-          <button style={S.themeBtn} onClick={() => setDarkMode(v => !v)} title="Toggle theme">
-            {darkMode ? ICO.sun : ICO.moon}
           </button>
         </div>
       </div>

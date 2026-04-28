@@ -72,7 +72,6 @@ export default function Toolbar({
   hasSummary,
   fromObsidian,
   darkMode,
-  onToggleTheme,
   sidebarOpen,
   onToggleSidebar,
 }) {
@@ -170,10 +169,6 @@ export default function Toolbar({
         </button>
 
         <div style={styles.divider} />
-
-        <button onClick={onToggleTheme} style={styles.iconBtn} title="Toggle theme">
-          {darkMode ? ICONS.sun : ICONS.moon}
-        </button>
 
         <button
           onClick={onToggleSidebar}
