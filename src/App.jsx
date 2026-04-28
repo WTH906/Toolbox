@@ -9,6 +9,33 @@ import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
 import { getSessionName, setStoredSessionName } from './shared/useCloudSync.js';
 
+// ── Error boundary so one crashing tab doesn't kill the whole app ──
+class TabErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error(`[${this.props.name}] crashed:`, error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary, #888)' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <h3 style={{ margin: '0 0 8px', color: 'var(--text-primary, #eee)', fontFamily: 'var(--font-display, serif)' }}>
+            {this.props.name} encountered an error
+          </h3>
+          <p style={{ fontSize: 13, margin: '0 0 16px', fontFamily: 'var(--font-mono, monospace)', opacity: 0.7 }}>
+            {this.state.error?.message || 'Unknown error'}
+          </p>
+          <button onClick={() => this.setState({ error: null })}
+            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent, #b48c50)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const TABS = [
   { id: 'forge',     label: 'Obsidian Forge', icon: '\u270D\uFE0F' },
   { id: 'annotator', label: 'Annotator',      icon: '\uD83D\uDCDD' },
@@ -124,25 +151,37 @@ export default function App() {
       {/* App Content */}
       <div style={styles.content}>
         <div style={{ ...styles.tabPane, display: activeApp === 'forge' ? 'flex' : 'none' }}>
-          <ObsidianForge sessionName={sessionName} onSyncStatusChange={setForgeSyncStatus} />
+          <TabErrorBoundary name="Obsidian Forge">
+            <ObsidianForge sessionName={sessionName} onSyncStatusChange={setForgeSyncStatus} />
+          </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'annotator' ? 'flex' : 'none' }}>
-          <AnnotatorApp sessionName={sessionName} onSyncStatusChange={setAnnotatorSyncStatus} />
+          <TabErrorBoundary name="Annotator">
+            <AnnotatorApp sessionName={sessionName} onSyncStatusChange={setAnnotatorSyncStatus} />
+          </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'bookmarks' ? 'flex' : 'none' }}>
-          <BookmarkApp sessionName={sessionName} onSyncStatusChange={setBookmarksSyncStatus} externalAdd={bookmarkToAdd} />
+          <TabErrorBoundary name="Bookmarks">
+            <BookmarkApp sessionName={sessionName} onSyncStatusChange={setBookmarksSyncStatus} externalAdd={bookmarkToAdd} />
+          </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'feed' ? 'block' : 'none', overflow: 'auto' }}>
-          <FeedApp sessionName={sessionName} onSyncStatusChange={setFeedSyncStatus}
-            onReadLater={handleReadLater} readingListLinks={readingListLinks} />
+          <TabErrorBoundary name="My Feed">
+            <FeedApp sessionName={sessionName} onSyncStatusChange={setFeedSyncStatus}
+              onReadLater={handleReadLater} readingListLinks={readingListLinks} />
+          </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'reading' ? 'flex' : 'none' }}>
-          <ReadingListApp sessionName={sessionName} onSyncStatusChange={setReadingSyncStatus}
-            externalAdd={readLaterItem} onSaveToBookmarks={handleSaveToBookmarks}
-            onLinksChange={setReadingListLinks} />
+          <TabErrorBoundary name="Reading List">
+            <ReadingListApp sessionName={sessionName} onSyncStatusChange={setReadingSyncStatus}
+              externalAdd={readLaterItem} onSaveToBookmarks={handleSaveToBookmarks}
+              onLinksChange={setReadingListLinks} />
+          </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>
-          <Folderico />
+          <TabErrorBoundary name="Folderico">
+            <Folderico />
+          </TabErrorBoundary>
         </div>
       </div>
 
