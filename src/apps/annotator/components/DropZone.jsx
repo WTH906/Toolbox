@@ -20,7 +20,7 @@ export default function DropZone({ active }) {
 const styles = {
   overlay: {
     position: 'fixed',
-    inset: 0,
+    top: 0, right: 0, bottom: 0, left: 0,
     zIndex: 9999,
     background: 'var(--bg-drop)',
     backdropFilter: 'blur(4px)',

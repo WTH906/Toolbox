@@ -954,7 +954,7 @@ const S = {
 
   // ── Dialog ──
   backdrop: {
-    position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.35)',
+    position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: 'rgba(0,0,0,0.35)',
     backdropFilter: 'blur(3px)', animation: 'fadeIn 150ms ease',
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
   },

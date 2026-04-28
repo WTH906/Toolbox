@@ -142,7 +142,7 @@ button { transition:all .12s; font-family:inherit; }
 .status-right { margin-left:auto; }
 
 /* ── Dialogs ──────────────────────────── */
-.dialog-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:100; animation:fadeIn .12s ease; }
+.dialog-overlay { position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:100; animation:fadeIn .12s ease; }
 .dialog { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:90%; max-width:440px; animation:slideIn .18s ease; box-shadow:0 20px 60px rgba(0,0,0,.4); }
 .dialog-wide { max-width:540px; }
 .dialog-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); }

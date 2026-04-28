@@ -73,9 +73,9 @@ export default function SessionPicker({ onPick }) {
 const styles = {
   backdrop: {
     position: 'fixed',
-    inset: 0,
+    top: 0, right: 0, bottom: 0, left: 0,
     zIndex: 5000,
-    background: 'var(--bg-primary)',
+    background: 'var(--bg-primary, #161514)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -84,8 +84,8 @@ const styles = {
   card: {
     width: 400,
     maxWidth: '100%',
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-secondary)',
+    background: 'var(--bg-surface, #232220)',
+    border: '1px solid var(--border-secondary, #2e2d2a)',
     borderRadius: 'var(--radius-xl)',
     boxShadow: 'var(--shadow-lg)',
     padding: '36px 32px 28px',

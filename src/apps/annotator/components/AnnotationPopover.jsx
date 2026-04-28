@@ -108,7 +108,7 @@ export default function AnnotationPopover({ position, selectedText, onSave, onCa
 }
 
 const S = {
-  backdrop: { position: 'fixed', inset: 0, zIndex: 999 },
+  backdrop: { position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zIndex: 999 },
   popover: { position: 'fixed', zIndex: 1000, width: 320, background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-popover)', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, animation: 'popIn 150ms ease forwards' },
   modeRow: { display: 'flex', gap: 4, flexWrap: 'wrap' },
   modeBtn: { padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', cursor: 'pointer', transition: 'all 120ms ease', border: '1px solid transparent', whiteSpace: 'nowrap' },

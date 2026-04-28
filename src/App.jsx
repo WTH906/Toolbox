@@ -24,6 +24,11 @@ export default function App() {
   const [sessionName, setSessionName] = useState(() => getSessionName());
   const [showSessionPicker, setShowSessionPicker] = useState(() => !getSessionName());
 
+  // Set dark theme globally on mount so CSS vars are defined for all tabs
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
+
   // Sync status for each app
   const [forgeSyncStatus, setForgeSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [annotatorSyncStatus, setAnnotatorSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
@@ -132,8 +137,8 @@ export default function App() {
 }
 
 const styles = {
-  shell: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' },
-  content: { flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 },
+  shell: { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary, #161514)', color: 'var(--text-primary, #e8e4de)' },
+  content: { flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, background: 'var(--bg-primary, #161514)' },
   tabPane: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'column', overflow: 'hidden' },
   switcher: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',

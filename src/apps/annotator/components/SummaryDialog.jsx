@@ -35,7 +35,7 @@ export default function SummaryDialog({ open, summary, onSave, onClose }) {
 }
 
 const S = {
-  backdrop: { position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(3px)', animation: 'fadeIn 150ms ease' },
+  backdrop: { position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(3px)', animation: 'fadeIn 150ms ease' },
   dialog: { position: 'fixed', zIndex: 2001, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 480, maxWidth: 'calc(100vw - 32px)', background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-lg)', padding: 24, display: 'flex', flexDirection: 'column', gap: 14, animation: 'popIn 200ms ease forwards' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 17, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', margin: 0 },

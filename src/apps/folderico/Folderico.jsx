@@ -416,7 +416,7 @@ export default function Folderico() {
         .cs{aspect-ratio:1;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all 0.15s;position:relative}
         .cs:hover{transform:scale(1.1)}
         .cs.a{border-color:white;box-shadow:0 0 12px rgba(255,255,255,0.2)}
-        .cs.a::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.5)}
+        .cs.a::after{content:"✓";position:absolute;top:0;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.5)}
         .ccr{display:flex;align-items:center;gap:10px}
         .ccr input[type="color"]{width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;padding:0}
         .ccr input[type="color"]::-webkit-color-swatch-wrapper{padding:2px}

@@ -434,7 +434,7 @@ const S = {
     background: "var(--bg-surface)", color: "var(--text-secondary)", cursor: "pointer", fontSize: 15, transition: "all 0.12s",
   },
   backdrop: {
-    position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(3px)",
+    position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(3px)",
     display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
   },
   dialog: {
