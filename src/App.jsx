@@ -5,6 +5,7 @@ import BookmarkApp from './apps/bookmarks/BookmarkApp.jsx';
 import FeedApp from './apps/feed/FeedApp.jsx';
 import ReadingListApp from './apps/reading/ReadingListApp.jsx';
 import SubscriptionsApp from './apps/subscriptions/SubscriptionsApp.jsx';
+import SnippetsApp from './apps/snippets/SnippetsApp.jsx';
 import Folderico from './apps/folderico/Folderico.jsx';
 import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
@@ -44,6 +45,7 @@ const TABS = [
   { id: 'feed',      label: 'My Feed',        icon: '\u26A1' },
   { id: 'reading',   label: 'Reading List',   icon: '\uD83D\uDCD6' },
   { id: 'subs',      label: 'Subscriptions',  icon: '\uD83D\uDCB3' },
+  { id: 'snippets',  label: 'Snippets',       icon: '\u2702\uFE0F' },
   { id: 'folderico', label: 'Folderico',      icon: '\uD83D\uDCC1' },
 ];
 
@@ -88,8 +90,9 @@ export default function App() {
   const [feedSyncStatus, setFeedSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [readingSyncStatus, setReadingSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [subsSyncStatus, setSubsSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
+  const [snippetsSyncStatus, setSnippetsSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
 
-  const activeSyncStatus = { forge: forgeSyncStatus, annotator: annotatorSyncStatus, bookmarks: bookmarksSyncStatus, feed: feedSyncStatus, reading: readingSyncStatus, subs: subsSyncStatus }[activeApp] || null;
+  const activeSyncStatus = { forge: forgeSyncStatus, annotator: annotatorSyncStatus, bookmarks: bookmarksSyncStatus, feed: feedSyncStatus, reading: readingSyncStatus, subs: subsSyncStatus, snippets: snippetsSyncStatus }[activeApp] || null;
 
   // ── Cross-tab communication ──
   // Feed → Reading List: article to add
@@ -133,9 +136,10 @@ export default function App() {
 
   return (
     <div style={styles.shell}>
+      <style>{`.tab-scroll::-webkit-scrollbar{display:none}`}</style>
       {/* Tab Bar */}
-      <div style={{ ...styles.switcher, ...(tabBarVisible ? {} : styles.switcherHidden) }}>
-        <div style={styles.switcherInner}>
+      <div style={{ ...styles.switcher, ...(tabBarVisible ? {} : styles.switcherHidden), overflow: tabBarVisible ? undefined : 'hidden' }}>
+        <div className="tab-scroll" style={styles.switcherInner}>
           {TABS.map((t) => (
             <button key={t.id} style={{ ...styles.tab, ...(activeApp === t.id ? styles.tabActive : {}) }}
               onClick={() => setActiveApp(t.id)}>
@@ -199,6 +203,11 @@ export default function App() {
             <SubscriptionsApp sessionName={sessionName} onSyncStatusChange={setSubsSyncStatus} />
           </TabErrorBoundary>
         </div>
+        <div style={{ ...styles.tabPane, display: activeApp === 'snippets' ? 'flex' : 'none' }}>
+          <TabErrorBoundary name="Snippets">
+            <SnippetsApp sessionName={sessionName} onSyncStatusChange={setSnippetsSyncStatus} />
+          </TabErrorBoundary>
+        </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>
           <TabErrorBoundary name="Folderico">
             <Folderico />
@@ -219,13 +228,17 @@ const styles = {
   content: { flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, background: 'var(--bg-primary, #161514)' },
   tabPane: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'column', overflow: 'hidden' },
   switcher: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', alignItems: 'center',
     background: 'var(--bg-toolbar)', borderBottom: '1px solid var(--border-secondary)',
     position: 'relative', zIndex: 50, transition: 'max-height 0.3s cubic-bezier(.4,0,.2,1), opacity 0.25s ease',
-    maxHeight: 56, opacity: 1, overflow: 'hidden',
+    maxHeight: 56, opacity: 1,
   },
   switcherHidden: { maxHeight: 0, opacity: 0, borderBottomColor: 'transparent' },
-  switcherInner: { display: 'flex', alignItems: 'stretch', gap: 0 },
+  switcherInner: {
+    display: 'flex', alignItems: 'stretch', gap: 0,
+    overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none',
+    WebkitOverflowScrolling: 'touch', flex: 1, paddingRight: 100,
+  },
   tab: {
     padding: '14px 20px', border: 'none', background: 'none', color: 'var(--text-tertiary)',
     fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
