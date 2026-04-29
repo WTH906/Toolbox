@@ -140,15 +140,21 @@ function PresetDialog({ preset, onSave, onClose }) {
 }
 
 // ── Article Card ──
-function ArticleCard({ article, index, onReadLater, alreadySaved }) {
+function ArticleCard({ article, index, onReadLater, alreadySaved, isNew }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={{
       padding: "18px 24px", borderBottom: "1px solid var(--border-secondary)",
-      background: hovered ? "var(--bg-hover)" : "var(--bg-surface)",
+      background: hovered ? "var(--bg-hover)" : isNew ? "var(--accent-surface, rgba(180,140,80,0.04))" : "var(--bg-surface)",
       transition: "background 0.15s", animation: "fadeIn 0.3s ease both", animationDelay: `${index * 30}ms`,
+      borderLeft: isNew ? "3px solid var(--accent)" : "3px solid transparent",
     }}>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px", alignItems: "center" }}>
+        {isNew && (
+          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--accent)", color: "#fff", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-mono)" }}>
+            NEW
+          </span>
+        )}
         {article.source && (
           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "var(--accent-subtle)", color: "var(--accent)", border: "1px solid var(--accent)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-mono)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: 0.8 }}>
             {article.source}
@@ -213,6 +219,14 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
   const [presetDialog, setPresetDialog] = useState(null); // null | 'new' | { edit: preset }
   const [toast, setToast] = useState(null);
 
+  // Track the top article from previous session — everything above it is "new"
+  const [lastSeenFr, setLastSeenFr] = useState(() => {
+    try { return localStorage.getItem('feed-lastseen-fr') || null; } catch { return null; }
+  });
+  const [lastSeenEn, setLastSeenEn] = useState(() => {
+    try { return localStorage.getItem('feed-lastseen-en') || null; } catch { return null; }
+  });
+
   const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 2200); };
   const savedLinksSet = useMemo(() => new Set(readingListLinks), [readingListLinks]);
 
@@ -232,6 +246,15 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
     const setLoading = isEn ? setLoadingEn : setLoadingFr;
     const setArticles = isEn ? setArticlesEn : setArticlesFr;
     const setError = isEn ? setErrorEn : setErrorFr;
+    const currentArticles = isEn ? articlesEn : articlesFr;
+
+    // Save current top article as "last seen" before refresh
+    if (currentArticles.length > 0) {
+      const topLink = currentArticles[0].link;
+      if (isEn) { setLastSeenEn(topLink); try { localStorage.setItem('feed-lastseen-en', topLink); } catch {} }
+      else { setLastSeenFr(topLink); try { localStorage.setItem('feed-lastseen-fr', topLink); } catch {} }
+    }
+
     setLoading(true); setError(null);
     try {
       const results = await Promise.allSettled(topics.map(t => fetchRss(t, lang)));
@@ -244,7 +267,7 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
       setLastRefresh(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [articlesFr, articlesEn]);
 
   // Initial load
   useEffect(() => { fetchAll("fr", topicsFr); fetchAll("en", topicsEn); }, []);
@@ -286,6 +309,18 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
   const loading = activeTab === "fr" ? loadingFr : loadingEn;
   const error = activeTab === "fr" ? errorFr : errorEn;
   const isLoading = loadingFr || loadingEn;
+  const lastSeen = activeTab === "fr" ? lastSeenFr : lastSeenEn;
+
+  // Compute which articles are new (above the last-seen marker)
+  const newArticleLinks = useMemo(() => {
+    if (!lastSeen) return new Set();
+    const newLinks = new Set();
+    for (const a of articles) {
+      if (a.link === lastSeen) break; // stop at the last-seen article
+      newLinks.add(a.link);
+    }
+    return newLinks;
+  }, [articles, lastSeen]);
 
   const handleReadLater = (article) => {
     onReadLater?.(article);
@@ -384,10 +419,23 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
                 <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
                 <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>No articles found.</p>
               </div>
-            ) : articles.map((article, i) => (
-              <ArticleCard key={article.link + i} article={article} index={i}
-                onReadLater={handleReadLater} alreadySaved={savedLinksSet.has(article.link)} />
-            ))
+            ) : articles.map((article, i) => {
+              const isNew = newArticleLinks.has(article.link);
+              const isLastNew = isNew && (i + 1 >= articles.length || !newArticleLinks.has(articles[i + 1]?.link));
+              return (
+                <React.Fragment key={article.link + i}>
+                  <ArticleCard article={article} index={i} isNew={isNew}
+                    onReadLater={handleReadLater} alreadySaved={savedLinksSet.has(article.link)} />
+                  {isLastNew && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 24px' }}>
+                      <div style={{ flex: 1, height: 1, background: 'var(--accent)' }} />
+                      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Last refresh</span>
+                      <div style={{ flex: 1, height: 1, background: 'var(--accent)' }} />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })
           }
         </div>
 

@@ -4,6 +4,7 @@ import ObsidianForge from './apps/forge/ObsidianForge.jsx';
 import BookmarkApp from './apps/bookmarks/BookmarkApp.jsx';
 import FeedApp from './apps/feed/FeedApp.jsx';
 import ReadingListApp from './apps/reading/ReadingListApp.jsx';
+import SubscriptionsApp from './apps/subscriptions/SubscriptionsApp.jsx';
 import Folderico from './apps/folderico/Folderico.jsx';
 import SessionPicker from './shared/SessionPicker.jsx';
 import SyncStatus from './shared/SyncStatus.jsx';
@@ -42,6 +43,7 @@ const TABS = [
   { id: 'bookmarks', label: 'Bookmarks',      icon: '\uD83D\uDD16' },
   { id: 'feed',      label: 'My Feed',        icon: '\u26A1' },
   { id: 'reading',   label: 'Reading List',   icon: '\uD83D\uDCD6' },
+  { id: 'subs',      label: 'Subscriptions',  icon: '\uD83D\uDCB3' },
   { id: 'folderico', label: 'Folderico',      icon: '\uD83D\uDCC1' },
 ];
 
@@ -85,8 +87,9 @@ export default function App() {
   const [bookmarksSyncStatus, setBookmarksSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [feedSyncStatus, setFeedSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
   const [readingSyncStatus, setReadingSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
+  const [subsSyncStatus, setSubsSyncStatus] = useState({ status: 'idle', lastSavedAt: null });
 
-  const activeSyncStatus = { forge: forgeSyncStatus, annotator: annotatorSyncStatus, bookmarks: bookmarksSyncStatus, feed: feedSyncStatus, reading: readingSyncStatus }[activeApp] || null;
+  const activeSyncStatus = { forge: forgeSyncStatus, annotator: annotatorSyncStatus, bookmarks: bookmarksSyncStatus, feed: feedSyncStatus, reading: readingSyncStatus, subs: subsSyncStatus }[activeApp] || null;
 
   // ── Cross-tab communication ──
   // Feed → Reading List: article to add
@@ -189,6 +192,11 @@ export default function App() {
             <ReadingListApp sessionName={sessionName} onSyncStatusChange={setReadingSyncStatus}
               externalAdd={readLaterItem} onSaveToBookmarks={handleSaveToBookmarks}
               onLinksChange={setReadingListLinks} />
+          </TabErrorBoundary>
+        </div>
+        <div style={{ ...styles.tabPane, display: activeApp === 'subs' ? 'flex' : 'none' }}>
+          <TabErrorBoundary name="Subscriptions">
+            <SubscriptionsApp sessionName={sessionName} onSyncStatusChange={setSubsSyncStatus} />
           </TabErrorBoundary>
         </div>
         <div style={{ ...styles.tabPane, display: activeApp === 'folderico' ? 'block' : 'none', overflow: 'auto' }}>
