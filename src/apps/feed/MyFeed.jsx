@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 // ── Defaults ──
 const DEFAULT_TOPICS_FR = ["intelligence artificielle", "LLM modeles IA", "IA recrutement RH"];
