@@ -653,7 +653,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
   }, [bookmarks, tags, search, filterTags]);
 
   // Untagged bookmarks
-  const untagged = filtered.filter(bm => bm.tagIds.length === 0);
+  const tagIdSet = new Set(tags.map(t => t.id));
+  const untagged = filtered.filter(bm => bm.tagIds.length === 0 || !bm.tagIds.some(tid => tagIdSet.has(tid)));
 
   // Recent tags: 3 most recently used tag IDs (from newest bookmarks)
   const recentTagIds = useMemo(() => {
