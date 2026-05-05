@@ -36,8 +36,14 @@ export default async function handler(req, res) {
       const payload = { savedAt: new Date().toISOString() };
 
       if (app === 'bookmarks') {
-        payload.tags = body.tags || [];
-        payload.bookmarks = body.bookmarks || [];
+        // Support both old format (tags/bookmarks) and new format (modes/modeData)
+        if (body.modes || body.modeData) {
+          payload.modes = body.modes || [];
+          payload.modeData = body.modeData || {};
+        } else {
+          payload.tags = body.tags || [];
+          payload.bookmarks = body.bookmarks || [];
+        }
       } else if (app === 'subscriptions') {
         payload.subscriptions = body.subscriptions || [];
         payload.tags = body.tags || [];

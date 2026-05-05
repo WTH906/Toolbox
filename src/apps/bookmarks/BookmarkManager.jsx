@@ -28,6 +28,7 @@ const ICO = {
   edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   x: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
   ext: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
+  move: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>,
   chevDown: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>,
   chevRight: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
   globe: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
@@ -240,7 +241,7 @@ function TagManagerDialog({ tags, onAdd, onUpdate, onDelete, onClose }) {
 //  ADD / EDIT BOOKMARK DIALOG
 // ===================================================================
 
-function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) {
+function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose, modes, currentModeId, onMove }) {
   const isEdit = bookmark?.id != null; // paste-and-go has no id
   const [url, setUrl] = useState(bookmark?.url || '');
   const [name, setName] = useState(bookmark?.name || '');
@@ -330,6 +331,21 @@ function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) 
             value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Add a note about this bookmark…" rows={3} />
 
+          {isEdit && modes && modes.length > 1 && (
+            <>
+              <label style={S.label}>Move to mode</label>
+              <div style={S.chipRow}>
+                {modes.filter(m => m.id !== currentModeId).map(mode => (
+                  <button key={mode.id} onClick={() => { onMove?.(bookmark.id, mode.id); onClose(); }}
+                    style={{ ...S.chip, borderColor: mode.color + '60', color: mode.color }}>
+                    <span style={{ ...S.tagDot, background: mode.color, width: 8, height: 8 }} />
+                    {mode.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           <div style={S.dialogActions}>
             <button style={S.ghostBtn} onClick={onClose}>Cancel</button>
             <button style={{ ...S.accentBtn, opacity: url.trim() ? 1 : 0.4 }} onClick={handleSave}>
@@ -346,11 +362,12 @@ function BookmarkDialog({ bookmark, tags, recentTagIds = [], onSave, onClose }) 
 //  BOOKMARK CARD
 // ===================================================================
 
-function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
+function BookmarkCard({ bookmark, tags, onEdit, onDelete, modes, onTransfer }) {
   const favicon = getFavicon(bookmark.url);
   const domain = getDomain(bookmark.url);
   const bookmarkTags = tags.filter(t => bookmark.tagIds.includes(t.id));
   const [faviconOk, setFaviconOk] = useState(true);
+  const [showMove, setShowMove] = useState(false);
 
   return (
     <div style={S.card}>
@@ -369,6 +386,24 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
           <span style={S.cardDomain}>{domain}</span>
         </div>
         <div style={S.cardActions}>
+          {modes && modes.length > 1 && (
+            <div style={{ position: 'relative' }}>
+              <button style={S.smallBtn} onClick={() => setShowMove(v => !v)} title="Move to...">{ICO.move}</button>
+              {showMove && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMove(false)} />
+                  <div style={S.moveMenu}>
+                    {modes.map(m => (
+                      <button key={m.id} style={S.moveItem} onClick={() => { onTransfer(bookmark.id, m.id); setShowMove(false); }}>
+                        <span style={{ ...S.modeDotSmall, background: m.color }} />
+                        {m.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <button style={S.smallBtn} onClick={() => onEdit(bookmark)} title="Edit">{ICO.edit}</button>
           <button style={{ ...S.smallBtn, color: '#d04040' }} onClick={() => onDelete(bookmark.id)} title="Delete">{ICO.trash}</button>
         </div>
@@ -393,7 +428,7 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete }) {
 //  TAG FOLDER
 // ===================================================================
 
-function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
+function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, modes, onTransfer }) {
   const [open, setOpen] = useState(defaultOpen);
   const count = bookmarks.length;
 
@@ -416,7 +451,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
             <p style={S.folderEmpty}>No bookmarks with this tag</p>
           ) : (
             bookmarks.map(bm => (
-              <BookmarkCard key={bm.id} bookmark={bm} tags={allTags} onEdit={onEdit} onDelete={onDelete} />
+              <BookmarkCard key={bm.id} bookmark={bm} tags={allTags} onEdit={onEdit} onDelete={onDelete} modes={modes} onTransfer={onTransfer} />
             ))
           )}
         </div>
@@ -429,7 +464,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen }) {
 //  MAIN COMPONENT
 // ===================================================================
 
-export default function BookmarkManager({ initialData, onDataChange, externalAdd }) {
+export default function BookmarkManager({ initialData, onDataChange, externalAdd, modes, currentModeId, onMoveToMode }) {
   const [tags, setTags] = useState(initialData?.tags || DEFAULT_TAGS);
   const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
   const [search, setSearch] = useState('');
@@ -725,6 +760,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                   onEdit={(bm) => setDialog({ edit: bm })}
                   onDelete={deleteBookmark}
                   defaultOpen={search.trim() ? tagBookmarks.length > 0 : false}
+                  modes={modes?.filter(m => m.id !== currentModeId)}
+                  onTransfer={(bmId, targetModeId) => { onMoveToMode?.(bmId, targetModeId); flash('Bookmark moved'); }}
                 />
               );
             })}
@@ -736,6 +773,8 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                 onEdit={(bm) => setDialog({ edit: bm })}
                 onDelete={deleteBookmark}
                 defaultOpen={search.trim() ? untagged.length > 0 : false}
+                modes={modes?.filter(m => m.id !== currentModeId)}
+                onTransfer={(bmId, targetModeId) => { onMoveToMode?.(bmId, targetModeId); flash('Bookmark moved'); }}
               />
             )}
           </>
@@ -753,6 +792,9 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
           recentTagIds={recentTagIds}
           onSave={dialog?.edit ? updateBookmark : addBookmark}
           onClose={() => setDialog(null)}
+          modes={modes}
+          currentModeId={currentModeId}
+          onMove={(bmId, targetModeId) => { onMoveToMode?.(bmId, targetModeId); setDialog(null); flash('Bookmark moved'); }}
         />
       )}
 
@@ -901,6 +943,19 @@ const S = {
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   cardActions: { display: 'flex', gap: 2, opacity: 0.4, transition: 'opacity 120ms' },
+  moveMenu: {
+    position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 100,
+    background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)',
+    borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)',
+    minWidth: 140, overflow: 'hidden',
+  },
+  moveItem: {
+    display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px',
+    fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', background: 'none',
+    border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left',
+    transition: 'background 80ms',
+  },
+  modeDotSmall: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
   cardNotes: {
     fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary)',
     padding: '4px 8px', margin: '0 0 0 38px', background: 'var(--accent-surface)',
