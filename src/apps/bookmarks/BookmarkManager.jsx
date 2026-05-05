@@ -428,8 +428,9 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete, modes, onTransfer }) {
 //  TAG FOLDER
 // ===================================================================
 
-function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, modes, onTransfer }) {
+function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, modes, onTransfer, onTransferFolder }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [showFolderMove, setShowFolderMove] = useState(false);
   const count = bookmarks.length;
 
   // Auto-open when search finds results in this folder
@@ -439,12 +440,34 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, mod
 
   return (
     <div style={S.folder}>
-      <button style={S.folderHeader} onClick={() => setOpen(v => !v)}>
-        <span style={S.folderChev}>{open ? ICO.chevDown : ICO.chevRight}</span>
-        <span style={{ ...S.folderIcon, color: tag.color }}>{open ? ICO.folderOpen : ICO.folder}</span>
-        <span style={S.folderName}>{tag.name}</span>
-        <span style={{ ...S.folderCount, background: tag.color + '20', color: tag.color }}>{count}</span>
-      </button>
+      <div style={S.folderHeaderRow}>
+        <button style={S.folderHeader} onClick={() => setOpen(v => !v)}>
+          <span style={S.folderChev}>{open ? ICO.chevDown : ICO.chevRight}</span>
+          <span style={{ ...S.folderIcon, color: tag.color }}>{open ? ICO.folderOpen : ICO.folder}</span>
+          <span style={S.folderName}>{tag.name}</span>
+          <span style={{ ...S.folderCount, background: tag.color + '20', color: tag.color }}>{count}</span>
+        </button>
+        {onTransferFolder && modes && modes.length > 0 && count > 0 && tag.id !== '_untagged' && (
+          <div style={{ position: 'relative', marginRight: 12 }}>
+            <button style={S.folderMoveBtn} onClick={(e) => { e.stopPropagation(); setShowFolderMove(v => !v); }} title="Move folder to...">
+              {ICO.move}
+            </button>
+            {showFolderMove && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowFolderMove(false)} />
+                <div style={S.moveMenu}>
+                  {modes.map(m => (
+                    <button key={m.id} style={S.moveItem} onClick={() => { onTransferFolder(tag, m.id); setShowFolderMove(false); }}>
+                      <span style={{ ...S.modeDotSmall, background: m.color }} />
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       {open && (
         <div style={S.folderBody}>
           {bookmarks.length === 0 ? (
@@ -464,7 +487,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, mod
 //  MAIN COMPONENT
 // ===================================================================
 
-export default function BookmarkManager({ initialData, onDataChange, externalAdd, modes, currentModeId, onMoveToMode }) {
+export default function BookmarkManager({ initialData, onDataChange, externalAdd, modes, currentModeId, onMoveToMode, onMoveFolderToMode }) {
   const [tags, setTags] = useState(initialData?.tags || DEFAULT_TAGS);
   const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
   const [search, setSearch] = useState('');
@@ -763,6 +786,7 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
                   defaultOpen={search.trim() ? tagBookmarks.length > 0 : false}
                   modes={modes?.filter(m => m.id !== currentModeId)}
                   onTransfer={(bmId, targetModeId) => { onMoveToMode?.(bmId, targetModeId); flash('Bookmark moved'); }}
+                  onTransferFolder={(tag, targetModeId) => { onMoveFolderToMode?.(tag, targetModeId); flash(`Folder "${tag.name}" moved`); }}
                 />
               );
             })}
@@ -901,11 +925,19 @@ const S = {
     background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)',
     borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 8,
   },
+  folderHeaderRow: {
+    display: 'flex', alignItems: 'center',
+  },
   folderHeader: {
-    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+    display: 'flex', alignItems: 'center', gap: 8, flex: 1,
     padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer',
     color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: 14,
     fontWeight: 600, transition: 'background 120ms', textAlign: 'left',
+  },
+  folderMoveBtn: {
+    background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer',
+    padding: '4px 8px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center',
+    opacity: 0.5, transition: 'opacity 120ms', marginRight: 8,
   },
   folderChev: { display: 'flex', color: 'var(--text-tertiary)', flexShrink: 0 },
   folderIcon: { display: 'flex', flexShrink: 0 },

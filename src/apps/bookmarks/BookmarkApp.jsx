@@ -173,6 +173,31 @@ export default function BookmarkApp({ sessionName: parentSession, onSyncStatusCh
     });
   }, [activeMode]);
 
+  const handleMoveFolderToMode = useCallback((tag, targetModeId) => {
+    setModeData(prev => {
+      const sourceData = prev[activeMode];
+      if (!sourceData) return prev;
+      const targetData = prev[targetModeId] || { bookmarks: [], tags: [] };
+
+      // Find all bookmarks with this tag
+      const toMove = sourceData.bookmarks.filter(bm => bm.tagIds.includes(tag.id));
+      const remaining = sourceData.bookmarks.filter(bm => !bm.tagIds.includes(tag.id));
+      if (toMove.length === 0) return prev;
+
+      // Copy the tag to target mode if it doesn't exist there
+      const targetTags = [...targetData.tags];
+      if (!targetTags.find(t => t.id === tag.id)) {
+        targetTags.push({ id: tag.id, name: tag.name, color: tag.color });
+      }
+
+      return {
+        ...prev,
+        [activeMode]: { ...sourceData, bookmarks: remaining },
+        [targetModeId]: { ...targetData, tags: targetTags, bookmarks: [...toMove, ...targetData.bookmarks] },
+      };
+    });
+  }, [activeMode]);
+
   return (
     <div style={S.root}>
       {/* Mode bar */}
@@ -211,6 +236,7 @@ export default function BookmarkApp({ sessionName: parentSession, onSyncStatusCh
           modes={modes}
           currentModeId={activeMode}
           onMoveToMode={handleMoveToMode}
+          onMoveFolderToMode={handleMoveFolderToMode}
         />
       </div>
 
