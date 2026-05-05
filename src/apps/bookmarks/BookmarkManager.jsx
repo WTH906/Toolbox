@@ -368,6 +368,16 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete, modes, onTransfer }) {
   const bookmarkTags = tags.filter(t => bookmark.tagIds.includes(t.id));
   const [faviconOk, setFaviconOk] = useState(true);
   const [showMove, setShowMove] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const moveBtnRef = useRef(null);
+
+  const openMove = () => {
+    if (moveBtnRef.current) {
+      const r = moveBtnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 160) });
+    }
+    setShowMove(v => !v);
+  };
 
   return (
     <div style={S.card}>
@@ -386,28 +396,26 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete, modes, onTransfer }) {
           <span style={S.cardDomain}>{domain}</span>
         </div>
         <div style={S.cardActions}>
-          {modes && modes.length > 1 && (
-            <div style={{ position: 'relative' }}>
-              <button style={S.smallBtn} onClick={() => setShowMove(v => !v)} title="Move to...">{ICO.move}</button>
-              {showMove && (
-                <>
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMove(false)} />
-                  <div style={S.moveMenu}>
-                    {modes.map(m => (
-                      <button key={m.id} style={S.moveItem} onClick={() => { onTransfer(bookmark.id, m.id); setShowMove(false); }}>
-                        <span style={{ ...S.modeDotSmall, background: m.color }} />
-                        {m.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+          {modes && modes.length > 0 && (
+            <button ref={moveBtnRef} style={S.smallBtn} onClick={openMove} title="Move to...">{ICO.move}</button>
           )}
           <button style={S.smallBtn} onClick={() => onEdit(bookmark)} title="Edit">{ICO.edit}</button>
           <button style={{ ...S.smallBtn, color: '#d04040' }} onClick={() => onDelete(bookmark.id)} title="Delete">{ICO.trash}</button>
         </div>
       </div>
+      {showMove && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onClick={() => setShowMove(false)} />
+          <div style={{ ...S.moveMenu, position: 'fixed', top: menuPos.top, left: menuPos.left }}>
+            {modes.map(m => (
+              <button key={m.id} style={S.moveItem} onClick={() => { onTransfer(bookmark.id, m.id); setShowMove(false); }}>
+                <span style={{ ...S.modeDotSmall, background: m.color }} />
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       {bookmark.notes && (
         <p style={S.cardNotes}>{bookmark.notes}</p>
       )}
@@ -431,12 +439,23 @@ function BookmarkCard({ bookmark, tags, onEdit, onDelete, modes, onTransfer }) {
 function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, modes, onTransfer, onTransferFolder }) {
   const [open, setOpen] = useState(defaultOpen);
   const [showFolderMove, setShowFolderMove] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const moveBtnRef = useRef(null);
   const count = bookmarks.length;
 
   // Auto-open when search finds results in this folder
   useEffect(() => {
     if (defaultOpen) setOpen(true);
   }, [defaultOpen]);
+
+  const openFolderMove = (e) => {
+    e.stopPropagation();
+    if (moveBtnRef.current) {
+      const r = moveBtnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 160) });
+    }
+    setShowFolderMove(v => !v);
+  };
 
   return (
     <div style={S.folder}>
@@ -448,26 +467,24 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, mod
           <span style={{ ...S.folderCount, background: tag.color + '20', color: tag.color }}>{count}</span>
         </button>
         {onTransferFolder && modes && modes.length > 0 && count > 0 && tag.id !== '_untagged' && (
-          <div style={{ position: 'relative', marginRight: 12 }}>
-            <button style={S.folderMoveBtn} onClick={(e) => { e.stopPropagation(); setShowFolderMove(v => !v); }} title="Move folder to...">
-              {ICO.move}
-            </button>
-            {showFolderMove && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowFolderMove(false)} />
-                <div style={S.moveMenu}>
-                  {modes.map(m => (
-                    <button key={m.id} style={S.moveItem} onClick={() => { onTransferFolder(tag, m.id); setShowFolderMove(false); }}>
-                      <span style={{ ...S.modeDotSmall, background: m.color }} />
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <button ref={moveBtnRef} style={S.folderMoveBtn} onClick={openFolderMove} title="Move folder to...">
+            {ICO.move}
+          </button>
         )}
       </div>
+      {showFolderMove && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onClick={() => setShowFolderMove(false)} />
+          <div style={{ ...S.moveMenu, position: 'fixed', top: menuPos.top, left: menuPos.left }}>
+            {modes.map(m => (
+              <button key={m.id} style={S.moveItem} onClick={() => { onTransferFolder(tag, m.id); setShowFolderMove(false); }}>
+                <span style={{ ...S.modeDotSmall, background: m.color }} />
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       {open && (
         <div style={S.folderBody}>
           {bookmarks.length === 0 ? (
@@ -977,10 +994,10 @@ const S = {
   },
   cardActions: { display: 'flex', gap: 2, opacity: 0.4, transition: 'opacity 120ms' },
   moveMenu: {
-    position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 100,
+    zIndex: 200,
     background: 'var(--bg-surface)', border: '1px solid var(--border-secondary)',
-    borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)',
-    minWidth: 140, overflow: 'hidden',
+    borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)',
+    minWidth: 150, overflow: 'hidden',
   },
   moveItem: {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px',
