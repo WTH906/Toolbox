@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 // ── Defaults ──
 const DEFAULT_TOPICS_FR = ["intelligence artificielle", "LLM modeles IA", "IA recrutement RH"];
@@ -211,6 +211,11 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
   const [activePreset, setActivePreset] = useState(null);
   const [articlesFr, setArticlesFr] = useState([]);
   const [articlesEn, setArticlesEn] = useState([]);
+  const articlesFrRef = useRef([]);
+  const articlesEnRef = useRef([]);
+  // Keep refs in sync for stable fetchAll
+  useEffect(() => { articlesFrRef.current = articlesFr; }, [articlesFr]);
+  useEffect(() => { articlesEnRef.current = articlesEn; }, [articlesEn]);
   const [loadingFr, setLoadingFr] = useState(false);
   const [loadingEn, setLoadingEn] = useState(false);
   const [errorFr, setErrorFr] = useState(null);
@@ -246,7 +251,7 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
     const setLoading = isEn ? setLoadingEn : setLoadingFr;
     const setArticles = isEn ? setArticlesEn : setArticlesFr;
     const setError = isEn ? setErrorEn : setErrorFr;
-    const currentArticles = isEn ? articlesEn : articlesFr;
+    const currentArticles = isEn ? articlesEnRef.current : articlesFrRef.current;
 
     // Save current top article as "last seen" before refresh
     if (currentArticles.length > 0) {
@@ -267,7 +272,7 @@ export default function AIFeed({ initialTopics, onTopicsChange, onReadLater, rea
       setLastRefresh(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, [articlesFr, articlesEn]);
+  }, []);
 
   // Initial load
   useEffect(() => { fetchAll("fr", topicsFr); fetchAll("en", topicsEn); }, []);
