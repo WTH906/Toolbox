@@ -237,6 +237,7 @@ export default function BookmarkApp({ sessionName: parentSession, onSyncStatusCh
           currentModeId={activeMode}
           onMoveToMode={handleMoveToMode}
           onMoveFolderToMode={handleMoveFolderToMode}
+          allModeData={modeData}
         />
       </div>
 

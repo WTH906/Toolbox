@@ -504,7 +504,7 @@ function TagFolder({ tag, bookmarks, allTags, onEdit, onDelete, defaultOpen, mod
 //  MAIN COMPONENT
 // ===================================================================
 
-export default function BookmarkManager({ initialData, onDataChange, externalAdd, modes, currentModeId, onMoveToMode, onMoveFolderToMode }) {
+export default function BookmarkManager({ initialData, onDataChange, externalAdd, modes, currentModeId, onMoveToMode, onMoveFolderToMode, allModeData }) {
   const [tags, setTags] = useState(initialData?.tags || DEFAULT_TAGS);
   const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
   const [search, setSearch] = useState('');
@@ -715,6 +715,27 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
     ? tags.filter(t => filterTags.includes(t.id))
     : tags;
 
+  // Cross-mode search: find results in other modes when searching
+  const crossModeResults = useMemo(() => {
+    if (!search.trim() || !allModeData || !modes) return [];
+    const q = search.toLowerCase();
+    const results = [];
+    for (const mode of modes) {
+      if (mode.id === currentModeId) continue;
+      const md = allModeData[mode.id];
+      if (!md?.bookmarks) continue;
+      const tagNameMap = new Map((md.tags || []).map(t => [t.id, t.name.toLowerCase()]));
+      const matches = md.bookmarks.filter(bm =>
+        bm.name.toLowerCase().includes(q) ||
+        bm.url.toLowerCase().includes(q) ||
+        (bm.notes || '').toLowerCase().includes(q) ||
+        bm.tagIds.some(tid => (tagNameMap.get(tid) || '').includes(q))
+      );
+      if (matches.length > 0) results.push({ mode, bookmarks: matches, tags: md.tags || [] });
+    }
+    return results;
+  }, [search, allModeData, modes, currentModeId]);
+
   return (
     <div style={S.root}>
       {/* ── Top bar ── */}
@@ -820,6 +841,29 @@ export default function BookmarkManager({ initialData, onDataChange, externalAdd
               />
             )}
           </>
+        )}
+
+        {/* Cross-mode search results */}
+        {crossModeResults.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0 10px' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-secondary)' }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Other modes</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-secondary)' }} />
+            </div>
+            {crossModeResults.map(({ mode, bookmarks: bms, tags: modeTags }) => (
+              <div key={mode.id} style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 4px', marginBottom: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: mode.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: mode.color }}>{mode.name}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>{bms.length}</span>
+                </div>
+                {bms.map(bm => (
+                  <BookmarkCard key={bm.id} bookmark={bm} tags={modeTags} onEdit={() => {}} onDelete={() => {}} />
+                ))}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
