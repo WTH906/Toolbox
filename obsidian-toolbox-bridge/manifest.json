@@ -1,0 +1,9 @@
+{
+  "id": "toolbox-bridge",
+  "name": "Toolbox Bridge",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Send notes to Obsidian Forge (editor) or MD Annotator (reader/highlighter) in the browser.",
+  "author": "Toolbox",
+  "isDesktopOnly": false
+}
